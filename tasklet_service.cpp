@@ -66,14 +66,15 @@ namespace cerl
     {
         mutex_lock lock(_mutex);
         _stop = stop_;
+        if(_stop == false)
+        {
+            return;
+        }
         for (vector<threadlet>::iterator it = _threadlets.begin(); it != _threadlets.end(); it++)
         {
             it->stop(stop_);
         }
-        if (stop_ == true)
-        {
-            _condition.notify_all();
-        }
+        _condition.notify_all();
         if(_pport_service)
         {
             _pport_service->stop();
