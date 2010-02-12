@@ -33,7 +33,6 @@ namespace cerl
         }
     }
 
-    //未完成的任务资源可能得不到释放
     tasklet_service::~tasklet_service()
     {
         join();
@@ -75,7 +74,10 @@ namespace cerl
         {
             _condition.notify_all();
         }
-        _pport_service->stop();
+        if(_pport_service)
+        {
+            _pport_service->stop();
+        }
         _ptimer->stop();
     }
 
