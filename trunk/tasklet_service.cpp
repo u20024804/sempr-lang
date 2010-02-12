@@ -4,11 +4,12 @@
 #include "tasklet.hpp"
 #include "tasklet_service.hpp"
 #include "timer.hpp"
+#include "port_service.hpp"
 
 namespace cerl
 {
 
-    tasklet_service::tasklet_service(int pool_size_):
+    tasklet_service::tasklet_service(int pool_size_, bool need_port_service, int maxevents):
             _mutex(),
             _condition(_mutex),
             _channel_manager(*this),
@@ -22,6 +23,7 @@ namespace cerl
             _stop(false),
             _ptimer(new timer(*this)),
             _sleepers(),
+            _pport_service(need_port_service ? new port_service(*this, maxevents) : NULL),
             _joined(false)
     {
         for (vector<threadlet>::iterator it = _threadlets.begin(); it != _threadlets.end(); it++)
@@ -54,10 +56,13 @@ namespace cerl
             ptasklet = *it;
             delete ptasklet;
         }
+        if(_pport_service)
+        {
+            delete _pport_service;
+        }
         delete _ptimer;
     }
 
-    //未完成的任务资源可能得不到释放
     void tasklet_service::stop(bool stop_)
     {
         mutex_lock lock(_mutex);
@@ -70,6 +75,7 @@ namespace cerl
         {
             _condition.notify_all();
         }
+        _pport_service->stop();
         _ptimer->stop();
     }
 
@@ -212,6 +218,10 @@ namespace cerl
 
     void tasklet_service::start()
     {
+        if(_pport_service)
+        {
+            _pport_service->start();
+        }
         _ptimer->start();
         for (vector<threadlet>::iterator it = _threadlets.begin(); it != _threadlets.end(); it++)
         {
@@ -232,6 +242,10 @@ namespace cerl
                 //如果已经启动了，但是又退出了会怎样？
                 it->join();
             }
+        }
+        if(_pport_service && _pport_service->started())
+        {
+            _pport_service->join();
         }
         if (_ptimer->started())
         {
@@ -327,6 +341,22 @@ namespace cerl
     unsigned long long tasklet_service::now()
     {
         return _ptimer->time();
+    }
+
+    bool tasklet_service::add_read(tasklet &tasklet_, int fd)
+    {
+        return _pport_service->add_read(tasklet_, fd);
+    }
+
+    bool tasklet_service::add_write(tasklet &tasklet_, int fd)
+    {
+        return _pport_service->add_write(tasklet_, fd);
+    }
+
+    void tasklet_service::shutdown(tasklet &tasklet_, int fd)
+    {
+        _pport_service->shutdown(tasklet_, fd);
+        ::close(fd);
     }
 
 } //namespace cerl

@@ -18,7 +18,7 @@ namespace cerl
     class tasklet;
     class tasklet_service;
 
-    enum message_type {no_msg=-1, empty_msg=0, msg_int=1, msg_char, msg_void, msg_string};
+    enum message_type {no_msg=-1, empty_msg=0, msg_int=1, msg_char, msg_void, msg_string, port_msg=-9};
     union message_context
     {
         int ivalue;

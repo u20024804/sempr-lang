@@ -4,5 +4,6 @@
 #define STACK_SIZE  (64 * 1024)
 #define MIN_STACK_SIZE  (4 * 1024)
 #define DEFAULT_INTERVAL (0.1)
+#define DEFAULT_MAXEVENTS   (128)
 
 #endif // CONSTANT_HPP_INCLUDED
