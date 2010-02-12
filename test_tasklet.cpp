@@ -144,7 +144,7 @@ public:
     void run()
     {
         printf("task6: %x\n", this);
-        throw ::std::exception();
+        cout << 1/0 << endl;
     }
     ~task6()
     {

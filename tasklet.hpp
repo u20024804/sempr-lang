@@ -38,6 +38,9 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(*_ptasklet_service, *this),
+                _buffer(NULL),
+                _buffer_size(0),
+                _flags(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -60,6 +63,9 @@ namespace cerl
                 _func_ptr1(handle_),
                 _arg(arg_),
                 _channel(*_ptasklet_service, *this),
+                _buffer(NULL),
+                _buffer_size(0),
+                 _flags(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -82,6 +88,9 @@ namespace cerl
                 _func_ptr1((void(*)(void *))handle_),
                 _arg(this),
                 _channel(*_ptasklet_service, *this),
+                _buffer(NULL),
+                _buffer_size(0),
+                 _flags(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -104,6 +113,9 @@ namespace cerl
                 _func_ptr1((void(*)(void *))handle_),
                 _arg(this),
                 _channel(*_ptasklet_service, *this),
+                _buffer(NULL),
+                _buffer_size(0),
+                _flags(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -126,6 +138,9 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(*_ptasklet_service, *this),
+                _buffer(NULL),
+                _buffer_size(0),
+                _flags(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -148,6 +163,9 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(*_ptasklet_service, *this),
+                _buffer(NULL),
+                _buffer_size(0),
+                _flags(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -169,6 +187,9 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(),
+                _buffer(NULL),
+                _buffer_size(0),
+                _flags(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(default_stack_size > MIN_STACK_SIZE ? default_stack_size: MIN_STACK_SIZE),
@@ -207,6 +228,9 @@ namespace cerl
         {
             send(&target, msg);
         }
+        int send(int fd, const void *buf, size_t len, int flags=0);
+        int recv(int fd, void *buf, size_t len, int flags=0);
+        void shutdown(int fd);
         message recv(double timeout=infinity);
         void sleep(double timeout);
         void yield();
@@ -284,8 +308,31 @@ namespace cerl
         void unlock();
         friend class quick_lock<tasklet>;
         friend class timer;
+        friend class port_service;
 
         virtual void run(){}
+
+        class on_port_finish
+        {
+        public:
+            enum op_type {op_read, op_write};
+
+            on_port_finish(tasklet* ptasklet_, int fd_, op_type op_) :
+                _tasklet(*ptasklet_),
+                _fd(fd_),
+                _op(op_)
+            {
+            }
+            ~on_port_finish();
+        private:
+            tasklet& _tasklet;
+            int _fd;
+            op_type _op;
+        };
+
+        char *_buffer;
+        size_t _buffer_size;
+        int _flags;
 
     private:
         void wrapped_run()

@@ -146,6 +146,16 @@ namespace cerl
             _m.lock();
         }
 
+        void lock()
+        {
+            _m.lock();
+        }
+
+        void unlock()
+        {
+            _m.unlock();
+        }
+
         ~quick_lock()
         {
             _m.unlock();

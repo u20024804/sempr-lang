@@ -27,15 +27,16 @@ namespace cerl
 
     void threadlet::loop()
     {
-        threadlet_lock lock(this);
         if (_plast_finished_tasklet != NULL)
         {
             delete _plast_finished_tasklet;
             _plast_finished_tasklet = NULL;
         }
+        threadlet_lock lock(this);
         _pcurrent_tasklet = &_ptasklet_service->pop_tasklet();
         if (_stop)
         {
+            lock.unlock();
             assert(_pcurrent_tasklet != NULL);
             delete _pcurrent_tasklet;
             throw stop_exception();

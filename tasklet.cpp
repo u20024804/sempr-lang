@@ -1,5 +1,6 @@
 #include <iostream>
 #include <ucontext.h>
+#include <sys/socket.h>
 
 #include "constant.hpp"
 #include "common.hpp"
@@ -26,6 +27,56 @@ namespace cerl
     {
         tasklet_lock lock(this);
         return _ptasklet_service->recv(*this, timeout);
+    }
+
+    tasklet::on_port_finish::~on_port_finish()
+    {
+        _tasklet._buffer = NULL;
+        _tasklet._buffer_size = 0;
+        _tasklet._flags = 0;
+    }
+
+    int tasklet::send(int fd, const void *buf, size_t len, int flags)
+    {
+        on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
+        _buffer = (char *)buf;
+        _buffer_size = len;
+        _flags = flags;
+        bool success = _ptasklet_service->add_write(*this, fd);
+        if (!success)
+        {
+            return -1;
+        }
+        message msg = recv();
+        if (msg.type != port_msg || msg.content.ivalue < -1)
+        {
+            throw exception();
+        }
+        return msg.content.ivalue;
+    }
+
+    int tasklet::recv(int fd, void *buf, size_t len, int flags)
+    {
+        on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
+        _buffer = (char *)buf;
+        _buffer_size = len;
+        _flags = flags;
+        bool success = _ptasklet_service->add_read(*this, fd);
+        if (!success)
+        {
+            return -1;
+        }
+        message msg = recv();
+        if (msg.type != port_msg || msg.content.ivalue < -1)
+        {
+            throw exception();
+        }
+        return msg.content.ivalue;
+    }
+
+    void tasklet::shutdown(int fd)
+    {
+        _ptasklet_service->shutdown(*this, fd);
     }
 
     void tasklet::sleep(double timeout)
@@ -82,12 +133,12 @@ namespace cerl
             on_exception(e);
             return2threadlet();
         }
-        catch(::std::exception &e)
+        catch (::std::exception &e)
         {
             on_exception(e);
             return2threadlet();
         }
-        catch(...)
+        catch (...)
         {
             cerr << "[tasklet:" << hex << this << "] catch exception unknow" << endl;
             return2threadlet();

@@ -21,11 +21,12 @@ namespace cerl
 
     class cid;
     class timer;
+    class port_service;
 
     class tasklet_service
     {
     public:
-        tasklet_service(int pool_size_=1);
+        tasklet_service(int pool_size_=1, bool need_port_service=true, int maxevents=DEFAULT_MAXEVENTS);
         virtual ~tasklet_service();
 
         void start();
@@ -200,6 +201,10 @@ namespace cerl
 
         unsigned long long now();
 
+        bool add_read(tasklet &tasklet_, int fd);
+        bool add_write(tasklet &tasklet_, int fd);
+        void shutdown(tasklet &tasklet_, int fd);
+
     private:
         mutex _mutex;
         condition _condition;
@@ -215,6 +220,7 @@ namespace cerl
         bool _stop;
         timer *_ptimer;
         set<tasklet*, tasklet::Comp> _sleepers;
+        port_service *_pport_service;
         bool _joined;
 
         void switch_tasklet(tasklet& current, tasklet& next);
@@ -233,6 +239,7 @@ namespace cerl
         bool check_waittings();
         friend void tasklet::start();
         friend class timer;
+        friend class port_service;
     };
 
 } //namespace cerl
