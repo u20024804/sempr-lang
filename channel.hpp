@@ -41,7 +41,7 @@ namespace cerl
         {
             _messages.push(msg);
         }
-        bool empty()
+        bool empty() const
         {
             return _messages.empty();
         }
@@ -62,7 +62,7 @@ namespace cerl
     public:
         cid() : _id(-1) {}
 
-        long id()
+        long id() const
         {
             return _id;
         }

@@ -241,7 +241,7 @@ namespace cerl
             _stack_size = stack_size_;
         }
 
-        size_t stack_size()
+        size_t stack_size() const
         {
             return _stack_size;
         }

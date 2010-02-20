@@ -41,6 +41,7 @@ namespace cerl
 
     message tasklet::send(int fd, const void *buf, size_t len, int flags)
     {
+        tasklet_lock lock(this);
         on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
         _buffer = (char *)buf;
         _buffer_size = len;
@@ -50,7 +51,8 @@ namespace cerl
         {
             return msg_fail;
         }
-        message msg = recv();
+
+        message msg = _ptasklet_service->recv(*this);
         if (msg.type != port_msg || msg.content.ivalue < -1)
         {
             throw exception();
@@ -60,6 +62,7 @@ namespace cerl
 
     message tasklet::recv(int fd, void *buf, size_t len, int flags, double timeout)
     {
+        tasklet_lock lock(this);
         on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
         _buffer = (char *)buf;
         _buffer_size = len;
@@ -70,7 +73,6 @@ namespace cerl
             return msg_fail;
         }
 
-        tasklet_lock lock(this);
         message msg = _ptasklet_service->recv(*this, timeout);
         if(msg.type == no_msg)
         {
