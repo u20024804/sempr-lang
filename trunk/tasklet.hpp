@@ -228,8 +228,8 @@ namespace cerl
         {
             send(&target, msg);
         }
-        int send(int fd, const void *buf, size_t len, int flags=0);
-        int recv(int fd, void *buf, size_t len, int flags=0);
+        message send(int fd, const void *buf, size_t len, int flags=0);
+        message recv(int fd, void *buf, size_t len, int flags=0, double timeout=infinity);
         void shutdown(int fd);
         message recv(double timeout=infinity);
         void sleep(double timeout);

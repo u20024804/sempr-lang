@@ -203,6 +203,7 @@ namespace cerl
 
         bool add_read(tasklet &tasklet_, int fd);
         bool add_write(tasklet &tasklet_, int fd);
+        void port_finish(tasklet &tasklet_, int fd, finish_type type_);
         void shutdown(tasklet &tasklet_, int fd);
 
     private:

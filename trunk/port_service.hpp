@@ -7,6 +7,7 @@
 #include <map>
 
 #include "constant.hpp"
+#include "common.hpp"
 #include "lock.hpp"
 #include "thread.hpp"
 
@@ -29,8 +30,8 @@ namespace cerl
 
         bool add_read(tasklet &tasklet_, int fd);
         bool add_write(tasklet &tasklet_, int fd);
-        enum finish_type {finish_read, finish_write};
         void del(tasklet &tasklet_, int fd);
+        void on_finish(tasklet &tasklet_, int fd, finish_type type_);
         void shutdown(tasklet &tasklet_, int fd);
 
         bool stopped()
@@ -48,7 +49,6 @@ namespace cerl
         void interrupt();
     protected:
         bool reset();
-        void on_finish(tasklet &tasklet_, int fd, finish_type type_);
     private:
         tasklet_service& _tasklet_service;
         int _epollfd;

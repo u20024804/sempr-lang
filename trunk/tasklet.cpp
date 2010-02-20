@@ -36,7 +36,10 @@ namespace cerl
         _tasklet._flags = 0;
     }
 
-    int tasklet::send(int fd, const void *buf, size_t len, int flags)
+    static const message msg_fail = {{-1}, port_msg};
+    static const message msg_timeout = {{-1}, no_msg};
+
+    message tasklet::send(int fd, const void *buf, size_t len, int flags)
     {
         on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
         _buffer = (char *)buf;
@@ -45,17 +48,17 @@ namespace cerl
         bool success = _ptasklet_service->add_write(*this, fd);
         if (!success)
         {
-            return -1;
+            return msg_fail;
         }
         message msg = recv();
         if (msg.type != port_msg || msg.content.ivalue < -1)
         {
             throw exception();
         }
-        return msg.content.ivalue;
+        return msg;
     }
 
-    int tasklet::recv(int fd, void *buf, size_t len, int flags)
+    message tasklet::recv(int fd, void *buf, size_t len, int flags, double timeout)
     {
         on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
         _buffer = (char *)buf;
@@ -64,14 +67,26 @@ namespace cerl
         bool success = _ptasklet_service->add_read(*this, fd);
         if (!success)
         {
-            return -1;
+            return msg_fail;
         }
-        message msg = recv();
-        if (msg.type != port_msg || msg.content.ivalue < -1)
+
+        tasklet_lock lock(this);
+        message msg = _ptasklet_service->recv(*this, timeout);
+        if(msg.type == no_msg)
+        {
+            if(msg.content.ivalue != 0 || timeout == infinity)
+            {
+                throw exception();
+            }
+            //由于这里已经加了锁，所以不会跟新的读操作搞混
+            _ptasklet_service->port_finish(*this, fd, finish_read);
+            return msg_timeout;
+        }
+        else if (msg.type != port_msg || msg.content.ivalue < -1)
         {
             throw exception();
         }
-        return msg.content.ivalue;
+        return msg;
     }
 
     void tasklet::shutdown(int fd)
