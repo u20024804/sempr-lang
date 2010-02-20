@@ -97,18 +97,12 @@ namespace cerl
                 assert(_tail_waittings == NULL);
                 _head_waittings = &tasklet_;
             }
-            else if (_head_waittings == _tail_waittings)
-            {
-                _head_waittings->_next_waitting = &tasklet_;
-                tasklet_._prev_waitting = _head_waittings;
-            }
             else
             {
-                _head_waittings->_next_waitting = &tasklet_;
-                tasklet_._prev_waitting = _head_waittings;
-                tasklet_._next_waitting = _tail_waittings;
-                _tail_waittings->_prev_waitting = &tasklet_;
+                _tail_waittings->_next_waitting = &tasklet_;
+                tasklet_._prev_waitting = _tail_waittings;
             }
+            assert(tasklet_._next_waitting == NULL);
             _tail_waittings = &tasklet_;
         }
 

@@ -23,7 +23,7 @@ task6 *t6;
 
 tasklet_service service(4);
 
-long times = 1000000L;
+long times = 100000000L;
 
 volatile long v = 0;
 
@@ -170,7 +170,7 @@ int main()
     service.add(t3);
     service.add(t4);
     service.add(t5);
-    service.add(t6);
+//    service.add(t6);
     service.start();
 //    service.join();
 }
