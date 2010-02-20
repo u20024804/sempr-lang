@@ -182,9 +182,9 @@ namespace cerl
         return was_interrupted;
     }
 
-    static message msg_error = {{-1}, port_msg};
-    static message msg_hup = {{-2}, port_msg};
-    static message msg_not_found = {{-3}, port_msg};
+    static const message msg_error = {{-1}, port_msg};
+    static const message msg_hup = {{-2}, port_msg};
+    static const message msg_not_found = {{-3}, port_msg};
 
     void port_service::loop()
     {

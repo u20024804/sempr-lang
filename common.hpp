@@ -3,7 +3,9 @@
 
 namespace cerl
 {
+
         enum{infinity=-1};
+        enum finish_type {finish_read, finish_write};
 
 } //namespace cerl
 

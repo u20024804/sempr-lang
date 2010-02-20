@@ -356,6 +356,11 @@ namespace cerl
         return _pport_service->add_write(tasklet_, fd);
     }
 
+    void tasklet_service::port_finish(tasklet &tasklet_, int fd, finish_type type_)
+    {
+        _pport_service->on_finish(tasklet_, fd, type_);
+    }
+
     void tasklet_service::shutdown(tasklet &tasklet_, int fd)
     {
         _pport_service->shutdown(tasklet_, fd);

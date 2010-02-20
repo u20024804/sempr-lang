@@ -21,10 +21,19 @@ public:
         for (int i = 0; i < 10; i++)
         {
             char buffer[8] = "abcde";
-            int size = recv(_conn, buffer, sizeof(buffer));
-            printf("recv: %d, %s\n", size, buffer);
-            size = send(_conn, buffer, size);
-            printf("send: %d, %s\n", size, buffer);
+            message msg = recv(_conn, buffer, sizeof(buffer), 0, 3);
+            if(msg.type == no_msg)
+            {
+                printf("timeout...\n");
+            }
+            else
+            {
+                int size = msg.content.ivalue;
+                printf("recv: %d, %s\n", size, buffer);
+                msg = send(_conn, buffer, size);
+                size = msg.content.ivalue;
+                printf("send: %d, %s\n", size, buffer);
+            }
         }
     }
     ~echo()
