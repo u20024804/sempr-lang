@@ -243,7 +243,13 @@ namespace cerl
             if (it->started())
             {
                 //如果已经启动了，但是又退出了会怎样？
-                it->join();
+                try
+                {
+                    it->join();
+                }
+                catch(const exception& e)
+                {
+                }
             }
         }
         if(_pport_service && _pport_service->started())
