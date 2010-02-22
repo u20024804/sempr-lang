@@ -13,7 +13,8 @@ class echo : public tasklet
 {
 public:
     static const char * const response;
-    echo(int fd) : tasklet(),
+    echo(int listenfd, int fd) :
+            _listenfd(listenfd),
             _conn(fd)
     {
         //printf("new echo(%d): %x\n", _conn, this);
@@ -22,6 +23,11 @@ public:
     {
         char buffer[128];
         message msg = recv(_conn, buffer, sizeof(buffer));
+        if(*(int *)"exit" == *(int *)buffer)
+        {
+            close(_listenfd);
+            service.stop();
+        }
         int size = msg.content.ivalue;
         //printf("recv: %d, %s\n", size, buffer);
         msg = send(_conn, response, strlen(response));
@@ -34,6 +40,7 @@ public:
         close(_conn);
     }
 private:
+    int _listenfd;
     int _conn;
 };
 
@@ -51,9 +58,13 @@ int main()
     while (true)
     {
         int conn = accept(listenfd);
-        echo *client = new echo(conn);
+        if(conn == -1)
+        {
+            printf("invalid conn socket!\n");
+            break;
+        }
+        echo *client = new echo(listenfd, conn);
         service.add(client);
     }
-    close(listenfd);
     printf("close...\n");
 }
