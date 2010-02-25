@@ -23,8 +23,8 @@ namespace cerl
             _tasklet_service(tasklet_service_),
             _maxevents(maxevents+1),
             _epoll_events(new epoll_event[maxevents+1]),
-            _read_fds(),
-            _write_fds(),
+//            _read_fds(),
+//            _write_fds(),
             _spin(),
             _stop(false)
     {
@@ -40,7 +40,7 @@ namespace cerl
 
         epoll_event ev = { 0, { 0 } };
         ev.events = EPOLLIN | EPOLLERR;
-        ev.data.fd = _interrupter;
+        ev.data.ptr = NULL;
         epoll_ctl(_epollfd, EPOLL_CTL_ADD, _interrupter, &ev);
     }
 
@@ -49,11 +49,12 @@ namespace cerl
         spin_lock lock(_spin);
         epoll_event ev = { 0, { 0 } };
         ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-        if (_write_fds.find(fd) != _write_fds.end())
+/*        if (_write_fds.find(fd) != _write_fds.end())
         {
             ev.events |= EPOLLOUT;
-        }
-        ev.data.fd = fd;
+        }*/
+        tasklet_._fd = fd;
+        ev.data.ptr = &tasklet_;
         int result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
         if (result != 0 && errno == ENOENT)
         {
@@ -63,8 +64,8 @@ namespace cerl
         {
             return false;
         }
-        _read_fds.insert(fd);
-        _fd_tasklet[fd] = &tasklet_;
+//        _read_fds.insert(fd);
+//        _fd_tasklet[fd] = &tasklet_;
         return true;
     }
 
@@ -73,11 +74,12 @@ namespace cerl
         spin_lock lock(_spin);
         epoll_event ev = { 0, { 0 } };
         ev.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
-        if (_read_fds.find(fd) != _read_fds.end())
+/*        if (_read_fds.find(fd) != _read_fds.end())
         {
             ev.events |= EPOLLIN;
-        }
-        ev.data.fd = fd;
+        }*/
+        tasklet_._fd = fd;
+        ev.data.ptr = &tasklet_;
         int result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
         if (result != 0 && errno == ENOENT)
         {
@@ -87,8 +89,8 @@ namespace cerl
         {
             return false;
         }
-        _write_fds.insert(fd);
-        _fd_tasklet[fd] = &tasklet_;
+//        _write_fds.insert(fd);
+//        _fd_tasklet[fd] = &tasklet_;
         return true;
     }
 
@@ -97,8 +99,11 @@ namespace cerl
         spin_lock lock(_spin);
         epoll_event ev = { 0, { 0 } };
         ev.events = EPOLLERR | EPOLLHUP;
-        ev.data.fd = fd;
-        if (type_ == finish_read)
+        tasklet_._fd = -1;
+        ev.data.ptr = &tasklet_;
+        del(tasklet_, fd);
+        return;
+/*        if (type_ == finish_read)
         {
             _read_fds.erase(fd);
             if (_write_fds.find(fd) == _write_fds.end())
@@ -130,7 +135,7 @@ namespace cerl
         if (result != 0)
         {
             throw exception();
-        }
+        }*/
     }
 
     void port_service::del(tasklet &tasklet_, int fd)
@@ -142,11 +147,11 @@ namespace cerl
     void port_service::shutdown(tasklet &tasklet_, int fd)
     {
         spin_lock lock(_spin);
-        _read_fds.erase(fd);
-        _write_fds.erase(fd);
+//        _read_fds.erase(fd);
+//        _write_fds.erase(fd);
         epoll_event ev = { 0, { 0 } };
         epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, &ev);
-        _fd_tasklet.erase(fd);
+//        _fd_tasklet.erase(fd);
     }
 
     port_service::~port_service()
@@ -207,19 +212,15 @@ namespace cerl
         mutex_lock lock(_tasklet_service._mutex);
         for (int i = 0; i < count; i++)
         {
-            int fd = _epoll_events[i].data.fd;
-            if (fd == _interrupter)
+            tasklet *_ptasklet = (tasklet *)_epoll_events[i].data.ptr;
+            if (_ptasklet == NULL)
             {
                 reset();
                 continue;
             }
+            tasklet& target = *_ptasklet;
+            int fd = target._fd;
             uint32_t events = _epoll_events[i].events;
-            map<int, tasklet *>::iterator it = _fd_tasklet.find(fd);
-            if (it == _fd_tasklet.end())
-            {
-                throw exception();
-            }
-            tasklet &target = *it->second;
             char *buffer = target._buffer;
             size_t buffer_size = target._buffer_size;
             int flags = target._flags;

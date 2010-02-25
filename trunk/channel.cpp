@@ -25,7 +25,7 @@ namespace cerl
 
     channel::~channel()
     {
-        _pchannel_manager->remove(*this);
+//        _pchannel_manager->remove(*this);
     }
 
     void channel::init()
@@ -37,15 +37,15 @@ namespace cerl
     {
         channel_._id._id = global_sequence.next_value();
 
-        spin_lock lock(_spin);
-        _channels[channel_.id()] = &channel_;
+//        spin_lock lock(_spin);
+//        _channels[channel_.id()] = &channel_;
     }
 
-    void channel_manager::remove(channel &channel_)
+/*    void channel_manager::remove(channel &channel_)
     {
         spin_lock lock(_spin);
         _channels.erase(channel_.id());
-    }
+    }*/
 
     void channel_manager::dispatch(channel &channel_, const message& msg, bool delete_from_sleepers)
     {
