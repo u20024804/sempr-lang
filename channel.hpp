@@ -109,7 +109,7 @@ namespace cerl
     public:
         channel_manager(tasklet_service& tasklet_service_) :
                 _tasklet_service(tasklet_service_),
-                _channels(),
+//                _channels(),
                 _spin()
         {
         }
@@ -125,11 +125,11 @@ namespace cerl
             spin_lock lock(channel_._spin);
             return channel_._message_box.pop();
         }
-        void remove(channel& channel_);
+//        void remove(channel& channel_);
 
     private:
         tasklet_service& _tasklet_service;
-        map<cid, channel*> _channels;
+//        map<cid, channel*> _channels;
         spin _spin;
     };
 

@@ -52,7 +52,8 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0)
+                _wake(0),
+                _fd(-1)
         {
             init(auto_start);
         }
@@ -77,7 +78,8 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0)
+                _wake(0),
+                _fd(-1)
         {
             init(auto_start);
         }
@@ -102,7 +104,8 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0)
+                _wake(0),
+                _fd(-1)
         {
             init(auto_start);
         }
@@ -127,7 +130,8 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0)
+                _wake(0),
+                _fd(-1)
         {
             init(auto_start);
         }
@@ -152,7 +156,8 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0)
+                _wake(0),
+                _fd(-1)
         {
             init(auto_start);
         }
@@ -177,7 +182,8 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0)
+                _wake(0),
+                _fd(-1)
         {
         }
 
@@ -201,7 +207,8 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0)
+                _wake(0),
+                _fd(-1)
         {
         }
 
@@ -352,6 +359,7 @@ namespace cerl
         tasklet *_next_runnable;
         tasklet_state _state;
         unsigned long long _wake;
+        int _fd;
     };
     typedef quick_lock<tasklet> tasklet_lock;
 

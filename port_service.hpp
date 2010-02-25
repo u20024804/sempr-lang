@@ -55,9 +55,9 @@ namespace cerl
         int _interrupter;
         int _maxevents;
         epoll_event  *_epoll_events;
-        set<int> _read_fds;
-        set<int> _write_fds;
-        map<int, tasklet*> _fd_tasklet;
+//        set<int> _read_fds;
+//        set<int> _write_fds;
+//        map<int, tasklet*> _fd_tasklet;
         spin _spin;
         bool _stop;
     };
