@@ -30,9 +30,9 @@ namespace cerl
 
         bool add_read(tasklet &tasklet_, int fd);
         bool add_write(tasklet &tasklet_, int fd);
-        void del(tasklet &tasklet_, int fd);
-        void on_finish(tasklet &tasklet_, int fd, finish_type type_);
-        void shutdown(tasklet &tasklet_, int fd);
+        bool set_listen(tasklet &tasklet_, int fd);
+        void del(tasklet &tasklet_);
+        void on_finish(tasklet &tasklet_);
 
         bool stopped()
         {
@@ -52,13 +52,10 @@ namespace cerl
     private:
         tasklet_service& _tasklet_service;
         int _epollfd;
+        int _listen;
         int _interrupter;
         int _maxevents;
         epoll_event  *_epoll_events;
-//        set<int> _read_fds;
-//        set<int> _write_fds;
-//        map<int, tasklet*> _fd_tasklet;
-        spin _spin;
         bool _stop;
     };
 

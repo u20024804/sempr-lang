@@ -319,7 +319,7 @@ namespace cerl
         }
         else
         {
-            throw exception();
+            throw exception(__FILE__, __LINE__);
         }
         push_tasklet(tasklet_);
     }
@@ -362,15 +362,16 @@ namespace cerl
         return _pport_service->add_write(tasklet_, fd);
     }
 
-    void tasklet_service::port_finish(tasklet &tasklet_, int fd, finish_type type_)
+    bool tasklet_service::set_listen(tasklet &tasklet_, int fd)
     {
-        _pport_service->on_finish(tasklet_, fd, type_);
+        return _pport_service->set_listen(tasklet_, fd);
     }
 
-    void tasklet_service::shutdown(tasklet &tasklet_, int fd)
+    void tasklet_service::close(tasklet &tasklet_)
     {
-        _pport_service->shutdown(tasklet_, fd);
-        ::close(fd);
+        _pport_service->on_finish(tasklet_);
+        ::close(tasklet_._fd);
+        tasklet_._fd = -1;
     }
 
 } //namespace cerl

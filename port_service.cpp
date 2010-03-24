@@ -21,11 +21,9 @@ namespace cerl
 
     port_service::port_service(tasklet_service& tasklet_service_, int maxevents) :
             _tasklet_service(tasklet_service_),
+            _listen(-1),
             _maxevents(maxevents+1),
             _epoll_events(new epoll_event[maxevents+1]),
-//            _read_fds(),
-//            _write_fds(),
-            _spin(),
             _stop(false)
     {
 #if __GLIBC__ == 2 && __GLIBC_MINOR__ < 8
@@ -39,119 +37,79 @@ namespace cerl
         _epollfd = epoll_create(_maxevents);
 
         epoll_event ev = { 0, { 0 } };
-        ev.events = EPOLLIN | EPOLLERR;
+        ev.events = EPOLLIN | EPOLLERR | EPOLLET;
         ev.data.ptr = NULL;
         epoll_ctl(_epollfd, EPOLL_CTL_ADD, _interrupter, &ev);
     }
 
     bool port_service::add_read(tasklet &tasklet_, int fd)
     {
-        spin_lock lock(_spin);
+        tasklet_._finished_buffer = 0;
         epoll_event ev = { 0, { 0 } };
-        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-/*        if (_write_fds.find(fd) != _write_fds.end())
-        {
-            ev.events |= EPOLLOUT;
-        }*/
-        tasklet_._fd = fd;
+        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLET;
         ev.data.ptr = &tasklet_;
-        int result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
-        if (result != 0 && errno == ENOENT)
+        int result;
+        if(tasklet_._fd  != -1)
+        {
+            result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
+        }
+        else
         {
             result = epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev);
+            tasklet_._fd = fd;
         }
         if (result != 0)
         {
+            assert(errno != ENOENT);
             return false;
         }
-//        _read_fds.insert(fd);
-//        _fd_tasklet[fd] = &tasklet_;
+        return true;
+    }
+
+    bool port_service::set_listen(tasklet &tasklet_, int fd)
+    {
+        if(!add_read(tasklet_, fd))
+        {
+            return false;
+        }
+        _listen = fd;
         return true;
     }
 
     bool port_service::add_write(tasklet &tasklet_, int fd)
     {
-        spin_lock lock(_spin);
+        tasklet_._finished_buffer = 0;
         epoll_event ev = { 0, { 0 } };
-        ev.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
-/*        if (_read_fds.find(fd) != _read_fds.end())
-        {
-            ev.events |= EPOLLIN;
-        }*/
-        tasklet_._fd = fd;
+        ev.events = EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLET;
         ev.data.ptr = &tasklet_;
-        int result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
-        if (result != 0 && errno == ENOENT)
+        int result;
+        if(tasklet_._fd != -1)
         {
-            result = epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev);
-        }
-        if (result != 0)
-        {
-            return false;
-        }
-//        _write_fds.insert(fd);
-//        _fd_tasklet[fd] = &tasklet_;
-        return true;
-    }
-
-    void port_service::on_finish(tasklet &tasklet_, int fd, finish_type type_)
-    {
-        spin_lock lock(_spin);
-        epoll_event ev = { 0, { 0 } };
-        ev.events = EPOLLERR | EPOLLHUP;
-        tasklet_._fd = -1;
-        ev.data.ptr = &tasklet_;
-        del(tasklet_, fd);
-        return;
-/*        if (type_ == finish_read)
-        {
-            _read_fds.erase(fd);
-            if (_write_fds.find(fd) == _write_fds.end())
-            {
-                del(tasklet_, fd);
-                return;
-            }
-            ev.events |= EPOLLOUT;
-        }
-        else if (type_ == finish_write)
-        {
-            _write_fds.erase(fd);
-            if (_read_fds.find(fd) == _read_fds.end())
-            {
-                del(tasklet_, fd);
-                return;
-            }
-            ev.events |= EPOLLIN;
+            result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
         }
         else
         {
-            throw exception();
-        }
-        int result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
-        if (result != 0 && errno == ENOENT)
-        {
             result = epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev);
+            tasklet_._fd = fd;
         }
         if (result != 0)
         {
-            throw exception();
-        }*/
+            assert(errno != ENOENT);
+            return false;
+        }
+        return true;
     }
 
-    void port_service::del(tasklet &tasklet_, int fd)
+    void port_service::on_finish(tasklet &tasklet_)
     {
-        epoll_event ev = { 0, { 0 } };
-        epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, &ev);
+        del(tasklet_);
+        return;
     }
 
-    void port_service::shutdown(tasklet &tasklet_, int fd)
+    void port_service::del(tasklet &tasklet_)
     {
-        spin_lock lock(_spin);
-//        _read_fds.erase(fd);
-//        _write_fds.erase(fd);
         epoll_event ev = { 0, { 0 } };
-        epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, &ev);
-//        _fd_tasklet.erase(fd);
+        epoll_ctl(_epollfd, EPOLL_CTL_DEL, tasklet_._fd, &ev);
     }
 
     port_service::~port_service()
@@ -175,7 +133,7 @@ namespace cerl
         int result = ::write(_interrupter, &counter, sizeof(uint64_t));
         if(result == -1)
         {
-            throw exception();
+            throw exception(__FILE__, __LINE__);
         }
     }
 
@@ -190,6 +148,7 @@ namespace cerl
     static const message msg_error = {{-1}, port_msg};
     static const message msg_hup = {{-2}, port_msg};
     static const message msg_not_found = {{-3}, port_msg};
+    static const message msg_closed = {{-4}, port_msg};
 
     void port_service::loop()
     {
@@ -202,12 +161,12 @@ namespace cerl
             }
             else
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
         if (count == 0)
         {
-            throw exception();
+            throw exception(__FILE__, __LINE__);
         }
         mutex_lock lock(_tasklet_service._mutex);
         for (int i = 0; i < count; i++)
@@ -222,24 +181,25 @@ namespace cerl
             int fd = target._fd;
             uint32_t events = _epoll_events[i].events;
             char *buffer = target._buffer;
-            size_t buffer_size = target._buffer_size;
+            int buffer_size = target._buffer_size;
             int flags = target._flags;
             if (events & EPOLLERR)
             {
-                on_finish(target, fd, finish_read);
-                on_finish(target, fd, finish_write);
                 _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
             }
             else if (events & EPOLLHUP)
             {
-                on_finish(target, fd, finish_read);
-                on_finish(target, fd, finish_write);
                 _tasklet_service._channel_manager.dispatch(target._channel, msg_hup);
+            }
+            else if(fd == _listen)
+            {
+                const message msg_accept = {{_listen}, port_msg};
+                _tasklet_service._channel_manager.dispatch(target._channel, msg_accept);
             }
             else if ((events & EPOLLIN))
             {
                 int len = ::recv(fd, buffer, buffer_size, flags);
-                if (len == -1)
+                if (len < 0)
                 {
                     if (errno == EAGAIN)
                     {
@@ -247,21 +207,29 @@ namespace cerl
                     }
                     else
                     {
-                        on_finish(target, fd, finish_read);
                         _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
                     }
                 }
-                else
+                else if(len == 0)
                 {
-                    on_finish(target, fd, finish_read);
-                    message msg_ok = {{len}, port_msg};
+                    _tasklet_service._channel_manager.dispatch(target._channel, msg_closed);
+                    continue;
+                }
+                else if(len <= buffer_size)
+                {
+                    target._finished_buffer += len;
+                    message msg_ok = {{target._finished_buffer}, port_msg};
                     _tasklet_service._channel_manager.dispatch(target._channel, msg_ok);
+                }
+                else // len > buffer_size
+                {
+                    _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
                 }
             }
             else if (events & EPOLLOUT)
             {
                 int len = ::send(fd, buffer, buffer_size, flags);
-                if (len == -1)
+                if (len < 0)
                 {
                     if (errno == EAGAIN)
                     {
@@ -269,20 +237,35 @@ namespace cerl
                     }
                     else
                     {
-                        on_finish(target, fd, finish_write);
                         _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
                     }
                 }
-                else
+                else if(len == 0)
                 {
-                    on_finish(target, fd, finish_write);
-                    message msg_ok = {{len}, port_msg};
+                    _tasklet_service._channel_manager.dispatch(target._channel, msg_closed);
+                    continue;
+                }
+                else if(len == buffer_size)
+                {
+                    target._finished_buffer += len;
+                    message msg_ok = {{target._finished_buffer}, port_msg};
                     _tasklet_service._channel_manager.dispatch(target._channel, msg_ok);
                 }
-            }
+                else if(len < buffer_size)
+                {
+                    target._finished_buffer += len;
+                    target._buffer += len;
+                    target._buffer_size -= len;
+                    continue;
+                }
+                 else // len > buffer_size
+                {
+                    _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
+                }
+           }
             else
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
     }

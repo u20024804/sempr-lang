@@ -191,14 +191,15 @@ namespace cerl
             }
             tasklet_._next_runnable = NULL;
             tasklet_._state = running;
+            return tasklet_;
         }
 
         unsigned long long now();
 
         bool add_read(tasklet &tasklet_, int fd);
         bool add_write(tasklet &tasklet_, int fd);
-        void port_finish(tasklet &tasklet_, int fd, finish_type type_);
-        void shutdown(tasklet &tasklet_, int fd);
+        bool set_listen(tasklet &tasklet_, int fd);
+        void close(tasklet &tasklet_);
 
     private:
         mutex _mutex;

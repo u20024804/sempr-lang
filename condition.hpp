@@ -19,7 +19,7 @@ namespace cerl
             int error = ::pthread_cond_init(&_cond, NULL);
             if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -28,7 +28,7 @@ namespace cerl
             int error = ::pthread_cond_wait(&_cond, &_mutex._p_mutex);
             if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -37,7 +37,7 @@ namespace cerl
             int error = ::pthread_cond_signal(&_cond);
             if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -46,7 +46,7 @@ namespace cerl
             int error = ::pthread_cond_broadcast(&_cond);
             if(error  != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -55,7 +55,7 @@ namespace cerl
             int error =  ::pthread_cond_destroy(&_cond);
              if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 

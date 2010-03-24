@@ -2,6 +2,8 @@
 #define TASKLET_HPP_INCLUDED
 
 #include <ucontext.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <exception>
 
 #include "constant.hpp"
@@ -41,6 +43,7 @@ namespace cerl
                 _buffer(NULL),
                 _buffer_size(0),
                 _flags(0),
+                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -67,6 +70,7 @@ namespace cerl
                 _buffer(NULL),
                 _buffer_size(0),
                  _flags(0),
+                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -93,6 +97,7 @@ namespace cerl
                 _buffer(NULL),
                 _buffer_size(0),
                  _flags(0),
+                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -119,6 +124,7 @@ namespace cerl
                 _buffer(NULL),
                 _buffer_size(0),
                 _flags(0),
+                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -145,6 +151,7 @@ namespace cerl
                 _buffer(NULL),
                 _buffer_size(0),
                 _flags(0),
+                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -171,6 +178,7 @@ namespace cerl
                 _buffer(NULL),
                 _buffer_size(0),
                 _flags(0),
+                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -196,6 +204,7 @@ namespace cerl
                 _buffer(NULL),
                 _buffer_size(0),
                 _flags(0),
+                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(default_stack_size > MIN_STACK_SIZE ? default_stack_size: MIN_STACK_SIZE),
@@ -237,7 +246,10 @@ namespace cerl
         }
         message send(int fd, const void *buf, size_t len, int flags=0);
         message recv(int fd, void *buf, size_t len, int flags=0, double timeout=infinity);
-        void shutdown(int fd);
+        int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
+        int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
+        void close();
+        void close(int fd);
         message recv(double timeout=infinity);
         void sleep(double timeout);
         void yield();
@@ -292,7 +304,7 @@ namespace cerl
         {
             if (getcontext(&_ucontext) == -1)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
             if (!_stack)
             {
@@ -340,6 +352,7 @@ namespace cerl
         char *_buffer;
         size_t _buffer_size;
         int _flags;
+        size_t _finished_buffer;
 
     private:
         void wrapped_run()

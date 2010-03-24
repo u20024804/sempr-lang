@@ -22,7 +22,7 @@ namespace cerl
             timeval now;
             if(gettimeofday(&now, NULL) != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
             _time = now.tv_sec * 10 + now.tv_usec * 1e-5;
         }
@@ -34,7 +34,7 @@ namespace cerl
             return _stop;
         }
 
-        bool stop(bool stop_=true)
+        void stop(bool stop_=true)
         {
             _stop = stop_;
         }

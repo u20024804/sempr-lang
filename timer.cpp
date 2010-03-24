@@ -8,7 +8,7 @@ namespace cerl
         timeval start_run;
         if (gettimeofday(&start_run, NULL) != 0)
         {
-            throw exception();
+            throw exception(__FILE__, __LINE__);
         }
         _time = start_run.tv_sec * 10 + start_run.tv_usec * 1e-5;
 
@@ -21,7 +21,7 @@ namespace cerl
                 timeval now;
                 if (gettimeofday(&now, NULL) != 0)
                 {
-                    throw exception();
+                    throw exception(__FILE__, __LINE__);
                 }
                 _time = now.tv_sec * 10 + now.tv_usec * 1e-5;
             }

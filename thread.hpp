@@ -53,7 +53,7 @@ namespace cerl
             int error = ::pthread_create(&_p_thread_t, NULL, (void* (*)(void *))start_routine, this);
             if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
             _started = true;
         }
@@ -68,7 +68,7 @@ namespace cerl
             int error = ::pthread_join(_p_thread_t, NULL);
             if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -77,7 +77,7 @@ namespace cerl
             int error = ::pthread_detach(_p_thread_t);
             if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -86,7 +86,7 @@ namespace cerl
             int error = ::pthread_cancel(_p_thread_t);
             if(error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -110,7 +110,7 @@ protected:
             timespec_.tv_nsec = (long)((sleep_time - timespec_.tv_sec) * 1e9);
             if(nanosleep(&timespec_, NULL) != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -131,7 +131,7 @@ protected:
             }
             else
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
             return NULL;
         }

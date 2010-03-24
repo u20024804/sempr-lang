@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <ucontext.h>
 #include <sys/socket.h>
 
@@ -7,6 +8,7 @@
 #include "tasklet.hpp"
 #include "threadlet.hpp"
 #include "tasklet_service.hpp"
+#include "port.hpp"
 
 namespace cerl
 {
@@ -53,9 +55,15 @@ namespace cerl
         }
 
         message msg = _ptasklet_service->recv(*this);
-        if (msg.type != port_msg || msg.content.ivalue < -1)
+        if (msg.type != port_msg || msg.content.ivalue < 0)
         {
-            throw exception();
+            if(msg.type == port_msg && msg.content.ivalue == -4)
+            {
+                throw close_exception();
+            }
+            std::stringstream output;
+            output << "msg: {" << msg.type << ", " << msg.content.ivalue << "}" << endl;
+            throw exception(__FILE__, __LINE__, output.str());
         }
         return msg;
     }
@@ -78,22 +86,84 @@ namespace cerl
         {
             if(msg.content.ivalue != 0 || timeout == infinity)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
-            //由于这里已经加了锁，所以不会跟新的读操作搞混
-            _ptasklet_service->port_finish(*this, fd, finish_read);
             return msg_timeout;
         }
-        else if (msg.type != port_msg || msg.content.ivalue < -1)
+        else if (msg.type != port_msg || msg.content.ivalue < 0)
         {
-            throw exception();
+            if(msg.type == port_msg && msg.content.ivalue == -4)
+            {
+                throw close_exception();
+            }
+            std::stringstream output;
+            output << "msg: {" << msg.type << ", " << msg.content.ivalue << "}" << endl;
+            throw exception(__FILE__, __LINE__, output.str());
         }
         return msg;
     }
 
-    void tasklet::shutdown(int fd)
+    int tasklet::port(const struct sockaddr_in *addr, int backlog, int socket_type, int protocol)
     {
-        _ptasklet_service->shutdown(*this, fd);
+        int listenfd = socket(addr->sin_family, socket_type, protocol);
+        if(listenfd == -1)
+        {
+            return -1;
+        }
+        set_noblock(listenfd);
+        int on = 1;
+        setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
+               (const void*)&on, sizeof(on));
+        if(bind(listenfd, (struct sockaddr*)addr, sizeof(sockaddr_in)) == -1)
+        {
+            close(listenfd);
+            return -1;
+        }
+        if(listen(listenfd, backlog) == -1)
+        {
+            close(listenfd);
+            return -1;
+        }
+
+        tasklet_lock lock(this);
+         on_port_finish on_port_finish_(this, listenfd, on_port_finish::op_read);
+        _buffer = NULL;
+        _buffer_size = 0;
+        _flags = 0;
+        bool success = _ptasklet_service->set_listen(*this, listenfd);
+        if (!success)
+        {
+            close(listenfd);
+            return -1;
+        }
+        return listenfd;
+    }
+
+    int tasklet::accept(sockaddr * addr, socklen_t * addrlen)
+    {
+        tasklet_lock lock(this);
+        message msg = _ptasklet_service->recv(*this);
+        if (msg.type != port_msg || msg.content.ivalue < 0)
+        {
+            if(msg.type == port_msg && msg.content.ivalue == -4)
+            {
+                throw close_exception();
+            }
+            std::stringstream output;
+            output << "msg: {" << msg.type << ", " << msg.content.ivalue << "}" << endl;
+            throw exception(__FILE__, __LINE__, output.str());
+        }
+        return ::accept(msg.content.ivalue, addr, addrlen);
+    }
+
+    void tasklet::close()
+    {
+        _ptasklet_service->close(*this);
+    }
+
+    void tasklet::close(int fd)
+    {
+        ::close(fd);
     }
 
     void tasklet::sleep(double timeout)
@@ -137,7 +207,7 @@ namespace cerl
             }
             else
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
         catch (stop_exception &e)

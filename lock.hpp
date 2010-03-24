@@ -16,7 +16,7 @@ namespace cerl
             int error = ::pthread_mutex_init(&_p_mutex, 0);
             if (error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -25,7 +25,7 @@ namespace cerl
             int error = ::pthread_mutex_lock(&_p_mutex);
             if (error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -34,7 +34,7 @@ namespace cerl
             int error = ::pthread_mutex_unlock(&_p_mutex);
             if (error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -43,7 +43,7 @@ namespace cerl
             int error = ::pthread_mutex_destroy(&_p_mutex);
             if (error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
     private:
@@ -59,7 +59,7 @@ namespace cerl
             int error = ::pthread_spin_init(&_p_spin, PTHREAD_PROCESS_PRIVATE);
             if (error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -78,7 +78,7 @@ namespace cerl
             int error = ::pthread_spin_unlock(&_p_spin);
             if (error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
 
@@ -87,7 +87,7 @@ namespace cerl
             int error = ::pthread_spin_destroy(&_p_spin);
             if (error != 0)
             {
-                throw exception();
+                throw exception(__FILE__, __LINE__);
             }
         }
     private:

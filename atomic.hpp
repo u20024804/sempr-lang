@@ -21,6 +21,11 @@ namespace cerl
             spin_lock _lock(_spin);
             return _value++;
         }
+
+        T get() const
+        {
+            return _value;
+        }
     private:
         T _value;
         spin _spin;
