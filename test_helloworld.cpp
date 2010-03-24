@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 
 #include "cerl.hpp"
 
@@ -76,40 +75,53 @@ private:
 
 const char * const echo::response = "HTTP/1.1 200\r\nContent-Length: 14\r\n\r\nHello world!\r\n";
 
-class server : public tasklet
+class server : public thread
 {
 public:
+    server(int listenfd):
+            _listenfd(listenfd)
+    {
+    }
     void run()
     {
-        sockaddr_in localaddr = {0};
-        localaddr.sin_family = AF_INET;
-        localaddr.sin_addr.s_addr = inet_addr("0.0.0.0");
-        localaddr.sin_port = htons(8888);
-        int listenfd = port(&localaddr, 1);
-        printf("start to listen...\n");
-
         while (true)
         {
-            int conn = accept();
+            int conn = accept(_listenfd);
             if (conn == -1)
             {
                 printf("invalid conn socket!\n");
                 return;
             }
-            echo *client = new echo(listenfd, conn);
+            echo *client = new echo(_listenfd, conn);
             service.add(client);
         }
     }
-    ~server()
-    {
-        printf("close...\n");
-    }
 private:
+    int _listenfd;
 };
 
 int main()
 {
-    server *http = new server();
-    service.add(http);
     service.start();
+    sockaddr_in localaddr = {0};
+    localaddr.sin_family = AF_INET;
+    localaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    localaddr.sin_port = htons(8888);
+    int listenfd = port(&localaddr, 1);
+    printf("start to listen...\n");
+
+    server server0 = server(listenfd);
+    server server1 = server(listenfd);
+    server server2 = server(listenfd);
+    server server3 = server(listenfd);
+    server0.start();
+    server1.start();
+    server2.start();
+    server3.start();
+    server0.join();
+    server1.join();
+    server2.join();
+    server3.join();
+
+    printf("close...\n");
 }

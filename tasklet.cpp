@@ -8,7 +8,6 @@
 #include "tasklet.hpp"
 #include "threadlet.hpp"
 #include "tasklet_service.hpp"
-#include "port.hpp"
 
 namespace cerl
 {
@@ -101,59 +100,6 @@ namespace cerl
             throw exception(__FILE__, __LINE__, output.str());
         }
         return msg;
-    }
-
-    int tasklet::port(const struct sockaddr_in *addr, int backlog, int socket_type, int protocol)
-    {
-        int listenfd = socket(addr->sin_family, socket_type, protocol);
-        if(listenfd == -1)
-        {
-            return -1;
-        }
-        set_noblock(listenfd);
-        int on = 1;
-        setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
-               (const void*)&on, sizeof(on));
-        if(bind(listenfd, (struct sockaddr*)addr, sizeof(sockaddr_in)) == -1)
-        {
-            close(listenfd);
-            return -1;
-        }
-        if(listen(listenfd, backlog) == -1)
-        {
-            close(listenfd);
-            return -1;
-        }
-
-        tasklet_lock lock(this);
-         on_port_finish on_port_finish_(this, listenfd, on_port_finish::op_read);
-        _buffer = NULL;
-        _buffer_size = 0;
-        _flags = 0;
-        bool success = _ptasklet_service->set_listen(*this, listenfd);
-        if (!success)
-        {
-            close(listenfd);
-            return -1;
-        }
-        return listenfd;
-    }
-
-    int tasklet::accept(sockaddr * addr, socklen_t * addrlen)
-    {
-        tasklet_lock lock(this);
-        message msg = _ptasklet_service->recv(*this);
-        if (msg.type != port_msg || msg.content.ivalue < 0)
-        {
-            if(msg.type == port_msg && msg.content.ivalue == -4)
-            {
-                throw close_exception();
-            }
-            std::stringstream output;
-            output << "msg: {" << msg.type << ", " << msg.content.ivalue << "}" << endl;
-            throw exception(__FILE__, __LINE__, output.str());
-        }
-        return ::accept(msg.content.ivalue, addr, addrlen);
     }
 
     void tasklet::close()
