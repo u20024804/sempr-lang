@@ -21,7 +21,6 @@ namespace cerl
 
     port_service::port_service(tasklet_service& tasklet_service_, int maxevents) :
             _tasklet_service(tasklet_service_),
-            _listen(-1),
             _maxevents(maxevents+1),
             _epoll_events(new epoll_event[maxevents+1]),
             _stop(false)
@@ -63,16 +62,6 @@ namespace cerl
             assert(errno != ENOENT);
             return false;
         }
-        return true;
-    }
-
-    bool port_service::set_listen(tasklet &tasklet_, int fd)
-    {
-        if(!add_read(tasklet_, fd))
-        {
-            return false;
-        }
-        _listen = fd;
         return true;
     }
 
@@ -190,11 +179,6 @@ namespace cerl
             else if (events & EPOLLHUP)
             {
                 _tasklet_service._channel_manager.dispatch(target._channel, msg_hup);
-            }
-            else if(fd == _listen)
-            {
-                const message msg_accept = {{_listen}, port_msg};
-                _tasklet_service._channel_manager.dispatch(target._channel, msg_accept);
             }
             else if ((events & EPOLLIN))
             {

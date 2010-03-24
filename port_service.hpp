@@ -30,7 +30,6 @@ namespace cerl
 
         bool add_read(tasklet &tasklet_, int fd);
         bool add_write(tasklet &tasklet_, int fd);
-        bool set_listen(tasklet &tasklet_, int fd);
         void del(tasklet &tasklet_);
         void on_finish(tasklet &tasklet_);
 
@@ -52,7 +51,6 @@ namespace cerl
     private:
         tasklet_service& _tasklet_service;
         int _epollfd;
-        int _listen;
         int _interrupter;
         int _maxevents;
         epoll_event  *_epoll_events;

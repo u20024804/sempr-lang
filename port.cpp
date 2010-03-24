@@ -44,4 +44,53 @@ namespace cerl
         }
     }
 
+    int port(const struct sockaddr_in *addr, int backlog, int socket_type, int protocol)
+    {
+        int listenfd = socket(addr->sin_family, socket_type, protocol);
+        if(listenfd == -1)
+        {
+            return -1;
+        }
+        int on = 1;
+        setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
+               (const void*)&on, sizeof(on));
+        if(bind(listenfd, (struct sockaddr*)addr, sizeof(sockaddr_in)) == -1)
+        {
+            close(listenfd);
+            return -1;
+        }
+        if(listen(listenfd, backlog) == -1)
+        {
+            close(listenfd);
+            return -1;
+        }
+        return listenfd;
+    }
+
+    int accept(int socket)
+    {
+        int conn = -1;
+        while(true)
+        {
+            conn = ::accept(socket, NULL, NULL);
+            if(conn == -1)
+            {
+                if(errno == EINTR)
+                {
+                    continue;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+        set_noblock(conn);
+        return conn;
+    }
+
 } //namespace cerl

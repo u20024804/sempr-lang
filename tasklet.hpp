@@ -2,8 +2,6 @@
 #define TASKLET_HPP_INCLUDED
 
 #include <ucontext.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <exception>
 
 #include "constant.hpp"
@@ -246,8 +244,6 @@ namespace cerl
         }
         message send(int fd, const void *buf, size_t len, int flags=0);
         message recv(int fd, void *buf, size_t len, int flags=0, double timeout=infinity);
-        int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
-        int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
         void close();
         void close(int fd);
         message recv(double timeout=infinity);

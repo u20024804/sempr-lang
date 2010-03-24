@@ -198,7 +198,6 @@ namespace cerl
 
         bool add_read(tasklet &tasklet_, int fd);
         bool add_write(tasklet &tasklet_, int fd);
-        bool set_listen(tasklet &tasklet_, int fd);
         void close(tasklet &tasklet_);
 
     private:
