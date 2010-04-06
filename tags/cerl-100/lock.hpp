@@ -65,12 +65,11 @@ namespace cerl
 
         inline void lock()
         {
-/*            int error = ::pthread_spin_lock(&_p_spin);
+            int error = ::pthread_spin_lock(&_p_spin);
             if (error != 0)
             {
-                throw exception();
-            }*/
-            while(!::pthread_spin_trylock(&_p_spin));
+                throw exception(__FILE__, __LINE__);
+            }
         }
 
         inline void unlock()
