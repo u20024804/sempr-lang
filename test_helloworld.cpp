@@ -93,7 +93,7 @@ public:
             int conn = accept();
             if (conn == -1)
             {
-                printf("invalid conn socket!\n");
+                printf("invalid conn socket! %m\n");
                 return;
             }
             echo *client = new echo(listenfd, conn);

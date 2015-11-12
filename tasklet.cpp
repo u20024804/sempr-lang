@@ -126,24 +126,23 @@ namespace cerl
             return -1;
         }
 
-        tasklet_lock lock(this);
-         on_port_finish on_port_finish_(this, listenfd, on_port_finish::op_read);
-        _buffer = NULL;
-        _buffer_size = 0;
-        _flags = 0;
-        bool success = _ptasklet_service->set_listen(*this, listenfd);
+        _net_state = listening;
+
+        bool success = _ptasklet_service->add_read(*this, listenfd);
         if (!success)
         {
-            close(listenfd);
             return -1;
         }
+
         return listenfd;
     }
 
     int tasklet::accept(sockaddr * addr, socklen_t * addrlen)
     {
         tasklet_lock lock(this);
+
         message msg = _ptasklet_service->recv(*this);
+
         if (msg.type != port_msg || msg.content.ivalue < 0)
         {
             if(msg.type == port_msg && msg.content.ivalue == -4)
@@ -156,6 +155,65 @@ namespace cerl
         }
         return ::accept(msg.content.ivalue, addr, addrlen);
     }
+
+    int tasklet::connect(const struct sockaddr *addr)
+    {
+        int connectfd = -1;
+        if ((connectfd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+        {
+            return connectfd;
+        }
+        set_noblock(connectfd);
+
+        int ret = ::connect(connectfd, addr, sizeof(addr));
+        if(ret == 0)
+        {
+            return connectfd;
+        }
+        else if(ret != -1)
+        {
+            throw exception(__FILE__, __LINE__);
+        }
+        else if(errno != EINPROGRESS)
+        {
+            return ret;
+        }
+
+        tasklet_lock lock(this);
+
+        _net_state = connectting;
+
+        bool success = _ptasklet_service->add_write(*this, connectfd);
+        if (!success)
+        {
+            return -1;
+        }
+
+        message msg = _ptasklet_service->recv(*this);
+        if (msg.type != port_msg || msg.content.ivalue < 0)
+        {
+            if(msg.type == port_msg && msg.content.ivalue == -4)
+            {
+                throw close_exception();
+            }
+            std::stringstream output;
+            output << "msg: {" << msg.type << ", " << msg.content.ivalue << "}" << endl;
+            throw exception(__FILE__, __LINE__, output.str());
+        }
+
+        _net_state = serving;
+
+        ret = ::connect(connectfd, addr, sizeof(addr));
+        if(ret == 0)
+        {
+            set_noblock(connectfd);
+        }
+        else
+        {
+            connectfd = -1;
+        }
+        return connectfd;
+     }
 
     void tasklet::close()
     {

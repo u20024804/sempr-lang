@@ -25,8 +25,16 @@ namespace cerl
         waitting,
         timeout_waitting,
         sleeping,
+        connecting,
         interrupted=-2,
         excepted=-3
+    };
+
+    enum net_state
+    {
+        serving = 0,
+        listening = 1,
+        connectting = 2
     };
 
     class tasklet
@@ -56,7 +64,8 @@ namespace cerl
                 _next_runnable(NULL),
                 _state(no_start),
                 _wake(0),
-                _fd(-1)
+                _fd(-1),
+                _net_state(serving)
         {
             init(auto_start);
         }
@@ -83,7 +92,8 @@ namespace cerl
                 _next_runnable(NULL),
                 _state(no_start),
                 _wake(0),
-                _fd(-1)
+                _fd(-1),
+                _net_state(serving)
         {
             init(auto_start);
         }
@@ -110,7 +120,8 @@ namespace cerl
                 _next_runnable(NULL),
                 _state(no_start),
                 _wake(0),
-                _fd(-1)
+                _fd(-1),
+                _net_state(serving)
         {
             init(auto_start);
         }
@@ -137,7 +148,8 @@ namespace cerl
                 _next_runnable(NULL),
                 _state(no_start),
                 _wake(0),
-                _fd(-1)
+                _fd(-1),
+                _net_state(serving)
         {
             init(auto_start);
         }
@@ -164,7 +176,8 @@ namespace cerl
                 _next_runnable(NULL),
                 _state(no_start),
                 _wake(0),
-                _fd(-1)
+                _fd(-1),
+                _net_state(serving)
         {
             init(auto_start);
         }
@@ -191,7 +204,8 @@ namespace cerl
                 _next_runnable(NULL),
                 _state(no_start),
                 _wake(0),
-                _fd(-1)
+                _fd(-1),
+                _net_state(serving)
         {
         }
 
@@ -217,7 +231,8 @@ namespace cerl
                 _next_runnable(NULL),
                 _state(no_start),
                 _wake(0),
-                _fd(-1)
+                _fd(-1),
+                _net_state(serving)
         {
         }
 
@@ -226,6 +241,7 @@ namespace cerl
             if (_stack)
             {
                 delete[] _stack;
+                _stack = NULL;
             }
         }
 
@@ -248,6 +264,7 @@ namespace cerl
         message recv(int fd, void *buf, size_t len, int flags=0, double timeout=infinity);
         int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
         int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
+        int connect(const struct sockaddr *addr);
         void close();
         void close(int fd);
         message recv(double timeout=infinity);
@@ -373,6 +390,7 @@ namespace cerl
         tasklet_state _state;
         unsigned long long _wake;
         int _fd;
+        net_state _net_state;
     };
     typedef quick_lock<tasklet> tasklet_lock;
 

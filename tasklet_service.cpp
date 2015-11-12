@@ -148,7 +148,7 @@ namespace cerl
                 switch_tasklet(recver, pop_runnable());
             }
             switched = true;
-        }
+    }
 
         if (!switched)
         {
@@ -361,11 +361,6 @@ namespace cerl
     bool tasklet_service::add_write(tasklet &tasklet_, int fd)
     {
         return _pport_service->add_write(tasklet_, fd);
-    }
-
-    bool tasklet_service::set_listen(tasklet &tasklet_, int fd)
-    {
-        return _pport_service->set_listen(tasklet_, fd);
     }
 
     void tasklet_service::close(tasklet &tasklet_)
