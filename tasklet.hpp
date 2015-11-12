@@ -264,7 +264,7 @@ namespace cerl
         message recv(int fd, void *buf, size_t len, int flags=0, double timeout=infinity);
         int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
         int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
-        int connect(const struct sockaddr *addr);
+        int connect(const struct sockaddr *addr, double timout=infinity);
         void close();
         void close(int fd);
         message recv(double timeout=infinity);

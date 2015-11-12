@@ -156,7 +156,7 @@ namespace cerl
         return ::accept(msg.content.ivalue, addr, addrlen);
     }
 
-    int tasklet::connect(const struct sockaddr *addr)
+    int tasklet::connect(const struct sockaddr *addr, double timeout)
     {
         int connectfd = -1;
         if ((connectfd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
@@ -189,7 +189,7 @@ namespace cerl
             return -1;
         }
 
-        message msg = _ptasklet_service->recv(*this);
+        message msg = _ptasklet_service->recv(*this, timeout);
         if (msg.type != port_msg || msg.content.ivalue < 0)
         {
             if(msg.type == port_msg && msg.content.ivalue == -4)
