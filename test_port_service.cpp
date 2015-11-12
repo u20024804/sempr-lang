@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "cerl.hpp"
 
@@ -45,19 +46,29 @@ private:
     int _conn;
 };
 
+class server : public tasklet
+{
+public:
+    void run()
+    {
+        sockaddr_in localaddr = {0};
+        localaddr.sin_family = AF_INET;
+        localaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        localaddr.sin_port = htons(8888);
+        int listenfd = port(&localaddr, 1);
+
+        while (true)
+        {
+            int conn = accept();
+            echo *client = new echo(conn);
+            service.add(client);
+        }
+    }
+};
+
 int main()
 {
+    server *port = new server();
+    service.add(port);
     service.start();
-    sockaddr_in localaddr = {0};
-    localaddr.sin_family = AF_INET;
-    localaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    localaddr.sin_port = htons(8888);
-    int listenfd = port(&localaddr, 1);
-    while (true)
-    {
-        int conn = accept(listenfd);
-        echo *client = new echo(conn);
-        service.add(client);
-    }
-    close(listenfd);
 }

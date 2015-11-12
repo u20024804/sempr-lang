@@ -2,6 +2,7 @@
 #include <sstream>
 #include <ucontext.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "constant.hpp"
 #include "common.hpp"

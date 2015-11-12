@@ -1,11 +1,12 @@
 #include <errno.h>
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #if __GLIBC__ == 2 && __GLIBC_MINOR__ < 8
-# include <asm/unistd.h>
+#include <asm/unistd.h>
 #else // __GLIBC__ == 2 && __GLIBC_MINOR__ < 8
-# include <sys/eventfd.h>
+#include <sys/eventfd.h>
 #endif // __GLIBC__ == 2 && __GLIBC_MINOR__ < 8
 
 #include <sys/socket.h>

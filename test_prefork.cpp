@@ -12,6 +12,36 @@ using namespace cerl;
 
 tasklet_service *pservice;
 
+
+static int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0)
+{
+    int listenfd = socket(addr->sin_family, socket_type, protocol);
+    if (listenfd == -1)
+    {
+        return -1;
+    }
+
+    set_noblock(listenfd);
+
+    int on = 1;
+    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
+               (const void *) &on, sizeof(on));
+
+    if (bind(listenfd, (struct sockaddr *) addr, sizeof(sockaddr_in)) == -1)
+    {
+        close(listenfd);
+        return -1;
+    }
+
+    if (listen(listenfd, backlog) == -1)
+    {
+        close(listenfd);
+        return -1;
+    }
+
+    return listenfd;
+}
+
 class echo : public tasklet
 {
 public:
@@ -60,7 +90,7 @@ public:
     {
         while (true)
         {
-            int conn = accept(_listenfd);
+            int conn = accept(_listenfd, NULL, NULL);
             if (conn == -1)
             {
                 printf("invalid conn socket!\n");
@@ -86,7 +116,7 @@ public:
         localaddr.sin_addr.s_addr = htonl(INADDR_ANY);
         localaddr.sin_port = htons(8889);
         int listenfd = port(&localaddr, 1);
-        int conn = accept(listenfd);
+        int conn = accept(listenfd, NULL, NULL);
         close(conn);
 
         char buffer[] = "exit";
