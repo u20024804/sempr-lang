@@ -28,6 +28,7 @@ set(COMMON_SOURCE_FILES
     throwable.hpp
     timer.cpp
     timer.hpp
+    ring_buffer.hpp
 )
 
 set(TEST_HELLOWORLD_SOURCE_FILES
