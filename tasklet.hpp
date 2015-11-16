@@ -9,6 +9,7 @@
 #include "constant.hpp"
 #include "common.hpp"
 #include "channel.hpp"
+#include "ring_buffer.hpp"
 
 namespace cerl
 {
@@ -35,6 +36,28 @@ namespace cerl
         serving = 0,
         listening = 1,
         connectting = 2
+    };
+
+    class tasklet;
+
+    enum net_event
+    {
+        none = 0,
+        net_read = 2,
+        net_write = 4
+    };
+
+    struct netfile
+    {
+        netfile(tasklet &tasklet_, int fd, int recv_buff_size, int send_buff_size) :
+                _tasklet(tasklet_), _fd(fd), _recv_buff(recv_buff_size),
+                _send_buff(send_buff_size), _net_event(0) {}
+        int _fd;
+        ring_buffer _recv_buff;
+        ring_buffer _send_buff;
+        tasklet &_tasklet;
+
+        int _net_event;
     };
 
     class tasklet
@@ -261,7 +284,7 @@ namespace cerl
             send(&target, msg);
         }
         message send(int fd, const void *buf, size_t len, int flags=0);
-        message recv(int fd, void *buf, size_t len, int flags=0, double timeout=infinity);
+        message recv(netfile netfile_, void *buf, size_t len, double timeout=infinity);
         int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
         int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
         int connect(const struct sockaddr *addr, double timout=infinity);
@@ -347,29 +370,6 @@ namespace cerl
         friend class port_service;
 
         virtual void run(){}
-
-        class on_port_finish
-        {
-        public:
-            enum op_type {op_read, op_write};
-
-            on_port_finish(tasklet* ptasklet_, int fd_, op_type op_) :
-                _tasklet(*ptasklet_),
-                _fd(fd_),
-                _op(op_)
-            {
-            }
-            ~on_port_finish();
-        private:
-            tasklet& _tasklet;
-            int _fd;
-            op_type _op;
-        };
-
-        char *_buffer;
-        size_t _buffer_size;
-        int _flags;
-        size_t _finished_buffer;
 
     private:
         void wrapped_run()

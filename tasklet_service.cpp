@@ -353,17 +353,17 @@ namespace cerl
         return _ptimer->time();
     }
 
-    bool tasklet_service::add_read(tasklet &tasklet_, int fd)
+    bool tasklet_service::add_read(netfile &netfile_)
     {
         return _pport_service->add_read(tasklet_, fd);
     }
 
-    bool tasklet_service::add_write(tasklet &tasklet_, int fd)
+    bool tasklet_service::add_write(netfile &netfile_)
     {
         return _pport_service->add_write(tasklet_, fd);
     }
 
-    void tasklet_service::close(tasklet &tasklet_)
+    void tasklet_service::close(netfile &netfile_)
     {
         _pport_service->on_finish(tasklet_);
         ::close(tasklet_._fd);

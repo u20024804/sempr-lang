@@ -25,9 +25,22 @@ namespace cerl
         char *cvalue;
         void *pvalue;
         string *svalue;
+
+        message_context() {}
+        message_context(int ivalue_) : ivalue(ivalue_) {}
+        message_context(char *cvalue_) : cvalue(cvalue_) {}
+        message_context(void *pvalue_) : pvalue(pvalue_) {}
+        message_context(string *svalue_) : svalue(svalue_) {}
     };
     struct message
     {
+        message() {}
+        message(message_context &content_, message_type type_) : content(content_), type(type_) {}
+        message(int ivalue, message_type, message_type type_) : content(message_context(ivalue)), type(type_) {}
+        message(char *cvalue, message_type, message_type type_) : content(message_context(cvalue)), type(type_) {}
+        message(void *pvalue, message_type, message_type type_) : content(message_context(pvalue)), type(type_) {}
+        message(string *svalue, message_type, message_type type_) : content(message_context(svalue)), type(type_) {}
+
         message_context content;
         message_type type;
     };

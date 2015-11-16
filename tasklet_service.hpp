@@ -196,9 +196,9 @@ namespace cerl
 
         unsigned long long now();
 
-        bool add_read(tasklet &tasklet_, int fd);
-        bool add_write(tasklet &tasklet_, int fd);
-        void close(tasklet &tasklet_);
+        bool add_read(netfile &netfile_);
+        bool add_write(netfile &netfile_);
+        void close(netfile &netfile_);
 
     private:
         mutex _mutex;

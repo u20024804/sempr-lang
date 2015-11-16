@@ -18,6 +18,7 @@ namespace cerl
     using std::map;
 
     class tasklet;
+    class netfile;
     class tasklet_service;
 
     class port_service : public thread
@@ -28,8 +29,8 @@ namespace cerl
         void loop();
         virtual ~port_service();
 
-        bool add_read(tasklet &tasklet_, int fd);
-        bool add_write(tasklet &tasklet_, int fd);
+        bool add_read(netfile &netfile_);
+        bool add_write(netfile &netfile_);
         void del(tasklet &tasklet_);
         void on_finish(tasklet &tasklet_);
 

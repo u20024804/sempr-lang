@@ -3,6 +3,7 @@
 #include <ucontext.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "constant.hpp"
 #include "common.hpp"
@@ -30,13 +31,6 @@ namespace cerl
     {
         tasklet_lock lock(this);
         return _ptasklet_service->recv(*this, timeout);
-    }
-
-    tasklet::on_port_finish::~on_port_finish()
-    {
-        _tasklet._buffer = NULL;
-        _tasklet._buffer_size = 0;
-        _tasklet._flags = 0;
     }
 
     static const message msg_fail = {{-1}, port_msg};
@@ -69,13 +63,16 @@ namespace cerl
         return msg;
     }
 
-    message tasklet::recv(int fd, void *buf, size_t len, int flags, double timeout)
+    message tasklet::recv(netfile netfile_, void *buf, size_t len, double timeout)
     {
         tasklet_lock lock(this);
-        on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
-        _buffer = (char *)buf;
-        _buffer_size = len;
-        _flags = flags;
+
+        if(netfile_._recv_buff.readable() >= len)
+        {
+            netfile_._recv_buff.read((char *)buf, len);
+            return message(buf, port_msg);
+        }
+
         bool success = _ptasklet_service->add_read(*this, fd);
         if (!success)
         {

@@ -42,45 +42,44 @@ namespace cerl
         epoll_ctl(_epollfd, EPOLL_CTL_ADD, _interrupter, &ev);
     }
 
-    bool port_service::add_read(tasklet &tasklet_, int fd)
+    bool port_service::add_read(netfile &netfile_)
     {
-        tasklet_._finished_buffer = 0;
         epoll_event ev = { 0, { 0 } };
         ev.events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLET;
-        ev.data.ptr = &tasklet_;
+        ev.data.ptr = &netfile_;
         int result;
-        if(tasklet_._fd  != -1)
+        if(netfile_._net_event & net_write)
         {
+            ev.events |= EPOLLOUT;
             result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
         }
         else
         {
             result = epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev);
-            tasklet_._fd = fd;
         }
         if (result != 0)
         {
             assert(errno != ENOENT);
             return false;
         }
+        netfile_._net_event |= net_read;
         return true;
     }
 
-    bool port_service::add_write(tasklet &tasklet_, int fd)
+    bool port_service::add_write(netfile &netfile_)
     {
-        tasklet_._finished_buffer = 0;
         epoll_event ev = { 0, { 0 } };
         ev.events = EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLET;
-        ev.data.ptr = &tasklet_;
+        ev.data.ptr = &netfile_;
         int result;
-        if(tasklet_._fd != -1)
+        if(netfile_._fd != -1)
         {
             result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev);
         }
         else
         {
             result = epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev);
-            tasklet_._fd = fd;
+            netfile_._fd = fd;
         }
         if (result != 0)
         {
