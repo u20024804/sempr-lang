@@ -111,6 +111,10 @@ public:
                     {
                         continue;
                     }
+                    else
+                    {
+                        return ret;
+                    }
                 }
                 else
                 {
@@ -139,6 +143,10 @@ public:
                     {
                         continue;
                     }
+                    else
+                    {
+                        return ret;
+                    }
                 }
                 else
                 {
@@ -161,21 +169,24 @@ public:
 
             for(int i = 0; i < 10; i++)
             {
-                ret = ::read(fd, _buffer + _tail, _size - _tail);
+                ret = ::read(fd, _buffer, _head);
                 if(ret == 0)
                 {
-                    _tail = _size;
-                    return part1;
+                    break;
                 }
                 else if(ret < 0)
                 {
                     if(ret != -1)
                     {
-                        return part1;
+                        break;
                     }
                     if(errno == EAGAIN || errno == EINTR)
                     {
                         continue;
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 else
@@ -190,7 +201,7 @@ public:
                 return part1;
             }
             _tail = ret;
-            return part1 + ret      ;
+            return part1 + ret;
         }
         return 0;
     }
@@ -240,6 +251,125 @@ public:
         }
 
         return to_write;
+    }
+
+    int on_send(int fd)
+    {
+        int to_write = writable();
+
+        if(_head > _tail)
+        {
+            for(int i = 0; i < 10; i++)
+            {
+                int ret = ::write(fd, _buffer + _tail, to_write);
+                if(ret == 0)
+                {
+                    return 0;
+                }
+                else if(ret < 0)
+                {
+                    if(ret != -1)
+                    {
+                        return ret;
+                    }
+                    if(errno == EAGAIN || errno == EINTR)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        return ret;
+                    }
+                }
+                else
+                {
+                    _tail += ret;
+                    return ret;
+                }
+            }
+        }
+        else
+        {
+            int ret = -1;
+            for(int i = 0; i < 10; i++)
+            {
+                ret = ::write(fd, _buffer + _tail, _size - _tail);
+                if(ret == 0)
+                {
+                    return 0;
+                }
+                else if(ret < 0)
+                {
+                    if(ret != -1)
+                    {
+                        return ret;
+                    }
+                    if(errno == EAGAIN || errno == EINTR)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        return ret;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if(ret <= 0)
+            {
+                return  ret;
+            }
+            else if(ret < _size - _tail)
+            {
+                _tail += ret;
+                return ret;
+            }
+
+            const int part1 = ret;
+            ret = -1;
+
+            for(int i = 0; i < 10; i++)
+            {
+                ret = ::write(fd, _buffer, _head);
+                if(ret == 0)
+                {
+                    break;
+                }
+                else if(ret < 0)
+                {
+                    if(ret != -1)
+                    {
+                        break;
+                    }
+                    if(errno == EAGAIN || errno == EINTR)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if(ret <= 0)
+            {
+                _tail = _size;
+                return part1;
+            }
+            _tail = ret;
+            return part1 + ret;
+
+        }
+        return 0;
     }
 
 private:
