@@ -36,10 +36,10 @@ namespace cerl
     {
         message() {}
         message(message_context &content_, message_type type_) : content(content_), type(type_) {}
-        message(int ivalue, message_type, message_type type_) : content(message_context(ivalue)), type(type_) {}
-        message(char *cvalue, message_type, message_type type_) : content(message_context(cvalue)), type(type_) {}
-        message(void *pvalue, message_type, message_type type_) : content(message_context(pvalue)), type(type_) {}
-        message(string *svalue, message_type, message_type type_) : content(message_context(svalue)), type(type_) {}
+        message(int ivalue, message_type type_) : content(message_context(ivalue)), type(type_) {}
+        message(char *cvalue, message_type type_) : content(message_context(cvalue)), type(type_) {}
+        message(void *pvalue, message_type type_) : content(message_context(pvalue)), type(type_) {}
+        message(string *svalue, message_type type_) : content(message_context(svalue)), type(type_) {}
 
         message_context content;
         message_type type;

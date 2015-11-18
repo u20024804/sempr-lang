@@ -50,11 +50,13 @@ namespace cerl
     struct netfile
     {
         netfile(tasklet &tasklet_, int fd, int recv_buff_size, int send_buff_size) :
-                _tasklet(tasklet_), _fd(fd), _recv_buff(recv_buff_size),
-                _send_buff(send_buff_size), _net_event(0) {}
+                _fd(fd), _recv_buff(recv_buff_size), _to_read(0), _to_write(0),
+                _send_buff(send_buff_size), _tasklet(tasklet_), _net_event(0) {}
         int _fd;
         ring_buffer _recv_buff;
         ring_buffer _send_buff;
+        int _to_read;
+        int _to_write;
         tasklet &_tasklet;
 
         int _net_event;
@@ -284,7 +286,7 @@ namespace cerl
             send(&target, msg);
         }
         message send(int fd, const void *buf, size_t len, int flags=0);
-        message recv(netfile netfile_, void *buf, size_t len, double timeout=infinity);
+        message recv(netfile &netfile_, void *buf, size_t len, double timeout=infinity);
         int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
         int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
         int connect(const struct sockaddr *addr, double timout=infinity);

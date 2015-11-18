@@ -355,12 +355,12 @@ namespace cerl
 
     bool tasklet_service::add_read(netfile &netfile_)
     {
-        return _pport_service->add_read(tasklet_, fd);
+        return _pport_service->add_read(netfile_);
     }
 
     bool tasklet_service::add_write(netfile &netfile_)
     {
-        return _pport_service->add_write(tasklet_, fd);
+        return _pport_service->add_write(netfile_);
     }
 
     void tasklet_service::close(netfile &netfile_)

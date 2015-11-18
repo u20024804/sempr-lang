@@ -6,6 +6,8 @@
 #define RING_BUFFER_HPP
 
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
 
 class ring_buffer
 {
@@ -18,8 +20,7 @@ public:
     {
         if(_buffer)
         {
-            delete[] _buffer;
-            _buffer = NULL;
+            delete[] (char *)_buffer;
         }
     }
 
@@ -33,7 +34,7 @@ public:
         return (_head > _tail || (_head == 0 && _tail == 0)) ? _head - _tail : _size - _tail + _head;
     }
 
-    int read(char *target, const int len, bool all=true)
+    int read(void *target, const int len, bool all=true)
     {
         if(len <= 0)
         {
@@ -83,7 +84,118 @@ public:
         return to_read;
     }
 
-    int write(char *target, int len, bool all=true)
+    int on_recv(int fd)
+    {
+        int to_read = writable();
+        if(to_read <= 0)
+        {
+            return 0;
+        }
+
+        if(_head > _tail)
+        {
+            for(int i = 0; i < 10; i++)
+            {
+                int ret = ::read(fd, _buffer + _tail, to_read);
+                if(ret == 0)
+                {
+                    return 0;
+                }
+                else if(ret < 0)
+                {
+                    if(ret != -1)
+                    {
+                        return ret;
+                    }
+                    if(errno == EAGAIN || errno == EINTR)
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    _tail += ret;
+                    return ret;
+                }
+            }
+        }
+        else
+        {
+            int ret = -1;
+            for(int i = 0; i < 10; i++)
+            {
+                ret = ::read(fd, _buffer + _tail, _size - _tail);
+                if(ret == 0)
+                {
+                    return 0;
+                }
+                else if(ret < 0)
+                {
+                    if(ret != -1)
+                    {
+                        return ret;
+                    }
+                    if(errno == EAGAIN || errno == EINTR)
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if(ret <= 0)
+            {
+                return ret;
+            }
+            if(ret < _size - _tail)
+            {
+                _tail += ret;
+                return ret;
+            }
+
+            const int part1 = ret;
+            ret = -1;
+
+            for(int i = 0; i < 10; i++)
+            {
+                ret = ::read(fd, _buffer + _tail, _size - _tail);
+                if(ret == 0)
+                {
+                    _tail = _size;
+                    return part1;
+                }
+                else if(ret < 0)
+                {
+                    if(ret != -1)
+                    {
+                        return part1;
+                    }
+                    if(errno == EAGAIN || errno == EINTR)
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if(ret <= 0)
+            {
+                _tail = _size;
+                return part1;
+            }
+            _tail = ret;
+            return part1 + ret      ;
+        }
+        return 0;
+    }
+
+    int write(void *target, int len, bool all=true)
     {
         if(len <= 0)
         {
@@ -131,7 +243,7 @@ public:
     }
 
 private:
-    const char *_buffer;
+    void * const _buffer;
     int _head;
     int _tail;
     const _size;

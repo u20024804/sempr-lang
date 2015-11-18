@@ -21,6 +21,29 @@ namespace cerl
     using std::hex;
     using std::endl;
 
+
+    struct read_finish
+    {
+        read_finish(netfile &netfile_) : _netfile(netfile_) {}
+        ~read_finish()
+        {
+            _netfile._to_read = 0;
+            //_netfile._net_event &= ~net_read;
+        }
+        netfile &_netfile;
+    };
+
+    struct write_finish
+    {
+        write_finish(netfile &netfile_) : _netfile(netfile_){}
+        ~write_finish()
+        {
+            _netfile._to_write = 0;
+            _netfile._net_event &= ~net_write;
+        }
+        netfile &_netfile;
+    };
+
     void tasklet::send(tasklet& target, const message& msg)
     {
         tasklet_lock lock(this);
@@ -63,9 +86,9 @@ namespace cerl
         return msg;
     }
 
-    message tasklet::recv(netfile netfile_, void *buf, size_t len, double timeout)
+    message tasklet::recv(netfile &netfile_, void *buf, size_t len, double timeout)
     {
-        tasklet_lock lock(this);
+        read_finish read_finish_(netfile_);
 
         if(netfile_._recv_buff.readable() >= len)
         {
@@ -73,7 +96,9 @@ namespace cerl
             return message(buf, port_msg);
         }
 
-        bool success = _ptasklet_service->add_read(*this, fd);
+        tasklet_lock lock(this);
+
+        bool success = _ptasklet_service->add_read(netfile_);
         if (!success)
         {
             return msg_fail;
