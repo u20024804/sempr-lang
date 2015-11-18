@@ -255,13 +255,17 @@ public:
 
     int on_send(int fd)
     {
-        int to_write = writable();
+        int to_write = readable();
+        if(to_write <= 0)
+        {
+            return 0;
+        }
 
-        if(_head > _tail)
+        if(_head < _tail)
         {
             for(int i = 0; i < 10; i++)
             {
-                int ret = ::write(fd, _buffer + _tail, to_write);
+                int ret = ::write(fd, _buffer + _head, to_write);
                 if(ret == 0)
                 {
                     return 0;
@@ -283,7 +287,7 @@ public:
                 }
                 else
                 {
-                    _tail += ret;
+                    _head += ret;
                     return ret;
                 }
             }
@@ -293,7 +297,7 @@ public:
             int ret = -1;
             for(int i = 0; i < 10; i++)
             {
-                ret = ::write(fd, _buffer + _tail, _size - _tail);
+                ret = ::write(fd, _buffer + _head, _size - _head);
                 if(ret == 0)
                 {
                     return 0;
@@ -323,9 +327,9 @@ public:
             {
                 return  ret;
             }
-            else if(ret < _size - _tail)
+            else if(ret < _size - _head)
             {
-                _tail += ret;
+                _head += ret;
                 return ret;
             }
 
@@ -334,7 +338,7 @@ public:
 
             for(int i = 0; i < 10; i++)
             {
-                ret = ::write(fd, _buffer, _head);
+                ret = ::write(fd, _buffer, _tail);
                 if(ret == 0)
                 {
                     break;
@@ -362,10 +366,10 @@ public:
 
             if(ret <= 0)
             {
-                _tail = _size;
+                _head = 0;
                 return part1;
             }
-            _tail = ret;
+            _head = ret;
             return part1 + ret;
 
         }
