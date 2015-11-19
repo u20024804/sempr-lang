@@ -37,7 +37,7 @@ namespace cerl
         _epollfd = epoll_create(_maxevents);
 
         epoll_event ev = { 0, { 0 } };
-        ev.events = EPOLLIN | EPOLLERR | EPOLLET;
+        ev.events = EPOLLIN | EPOLLERR;
         ev.data.ptr = NULL;
         epoll_ctl(_epollfd, EPOLL_CTL_ADD, _interrupter, &ev);
     }
@@ -50,7 +50,7 @@ namespace cerl
         }
 
         epoll_event ev = { 0, { 0 } };
-        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLET;
+        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
         ev.data.ptr = &netfile_;
         int result;
         if(netfile_._net_event & net_write)
@@ -71,6 +71,36 @@ namespace cerl
         return true;
     }
 
+    bool port_service::del_read(netfile &netfile_)
+    {
+        if(netfile_._net_event & net_read == 0)
+        {
+            return true;
+        }
+
+        epoll_event ev = { 0, { 0 } };
+        ev.events = EPOLLERR | EPOLLHUP;
+        ev.data.ptr = &netfile_;
+        int result;
+         if(netfile_._net_event & net_write)
+        {
+            ev.events |= EPOLLOUT;
+            result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, netfile_._fd, &ev);
+        }
+        else
+        {
+            epoll_event ev = { 0, { 0 } };
+            result = epoll_ctl(_epollfd, EPOLL_CTL_DEL, netfile_._fd, &ev);
+        }
+        if (result != 0)
+        {
+            assert(errno != ENOENT);
+            return false;
+        }
+        netfile_._net_event &= ~net_read;
+        return true;
+     }
+
     bool port_service::add_write(netfile &netfile_)
     {
         if(netfile_._net_event & net_write)
@@ -79,7 +109,7 @@ namespace cerl
         }
 
         epoll_event ev = { 0, { 0 } };
-        ev.events = EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLET;
+        ev.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
         ev.data.ptr = &netfile_;
         int result;
         if(netfile_._net_event & net_read)
@@ -89,6 +119,7 @@ namespace cerl
         }
         else
         {
+            epoll_event ev = { 0, { 0 } };
             result = epoll_ctl(_epollfd, EPOLL_CTL_ADD, netfile_._fd, &ev);
         }
         if (result != 0)
@@ -100,16 +131,46 @@ namespace cerl
         return true;
     }
 
-    void port_service::on_finish(tasklet &tasklet_)
+    bool port_service::del_write(netfile &netfile_)
     {
-        del(tasklet_);
+        if(netfile_._net_event & net_write == 0)
+        {
+            return true;
+        }
+
+        epoll_event ev = { 0, { 0 } };
+        ev.events = EPOLLERR | EPOLLHUP;
+        ev.data.ptr = &netfile_;
+        int result;
+        if(netfile_._net_event & net_read)
+        {
+            ev.events |= EPOLLIN;
+            result = epoll_ctl(_epollfd, EPOLL_CTL_MOD, netfile_._fd, &ev);
+        }
+        else
+        {
+            epoll_event ev = { 0, { 0 } };
+            result = epoll_ctl(_epollfd, EPOLL_CTL_DEL, netfile_._fd, &ev);
+        }
+        if (result != 0)
+        {
+            assert(errno != ENOENT);
+            return false;
+        }
+        netfile_._net_event &= ~net_write;
+        return true;
+      }
+
+    void port_service::on_finish(netfile &netfile_)
+    {
+        del(netfile_);
         return;
     }
 
-    void port_service::del(tasklet &tasklet_)
+    void port_service::del(netfile &netfile_)
     {
         epoll_event ev = { 0, { 0 } };
-        epoll_ctl(_epollfd, EPOLL_CTL_DEL, tasklet_._fd, &ev);
+        epoll_ctl(_epollfd, EPOLL_CTL_DEL, netfile_._fd, &ev);
     }
 
     port_service::~port_service()
@@ -145,6 +206,7 @@ namespace cerl
         return was_interrupted;
     }
 
+    static const message msg_ok = {{0}, port_msg};
     static const message msg_error = {{-1}, port_msg};
     static const message msg_hup = {{-2}, port_msg};
     static const message msg_not_found = {{-3}, port_msg};
@@ -171,60 +233,56 @@ namespace cerl
         mutex_lock lock(_tasklet_service._mutex);
         for (int i = 0; i < count; i++)
         {
-            tasklet *_ptasklet = (tasklet *)_epoll_events[i].data.ptr;
-            if (_ptasklet == NULL)
+            netfile *netfile_ = (netfile *)_epoll_events[i].data.ptr;
+            if (netfile_ == NULL)
             {
                 reset();
                 continue;
             }
-            tasklet& target = *_ptasklet;
+            netfile& target = *netfile_;
             int fd = target._fd;
             uint32_t events = _epoll_events[i].events;
-            char *buffer = target._buffer;
-            int buffer_size = target._buffer_size;
-            int flags = target._flags;
             if (events & EPOLLERR)
             {
-                _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
+                _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_error);
             }
             else if (events & EPOLLHUP)
             {
-                _tasklet_service._channel_manager.dispatch(target._channel, msg_hup);
+                _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_hup);
             }
             else if ((events & EPOLLIN))
             {
                 if(target._net_state == listening)
                 {
                     const message msg_accept = {{fd}, port_msg};
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_accept);
+                    _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_accept);
                     continue;
                 }
-                int len = ::recv(fd, buffer, buffer_size, flags);
+                const int to_read = target._to_read;
+                int len = target.on_recv();
                 if (len < 0)
                 {
-                    if (errno == EAGAIN)
+                    if (errno == EAGAIN || errno == EINTR)
                     {
                         continue;
                     }
                     else
                     {
-                        _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
+                        _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_error);
                     }
                 }
                 else if(len == 0)
                 {
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_closed);
+                    _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_closed);
                     continue;
                 }
-                else if(len <= buffer_size)
+                else if(len >= to_read)
                 {
-                    target._finished_buffer += len;
-                    message msg_ok = {{target._finished_buffer}, port_msg};
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_ok);
+                    _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_ok);
                 }
-                else // len > buffer_size
+                else
                 {
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
+                    continue;
                 }
             }
             else if (events & EPOLLOUT)
@@ -232,45 +290,38 @@ namespace cerl
                 if(target._net_state == connectting)
                 {
                     const message msg_connect = {{fd}, port_msg};
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_connect);
+                    _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_connect);
                     continue;
                 }
 
-                int len = ::send(fd, buffer, buffer_size, flags);
+                const int to_write = target._to_write;
+                int len = target.on_send();
                 if (len < 0)
                 {
-                    if (errno == EAGAIN)
+                    if (errno == EAGAIN || errno == EINTR)
                     {
                         continue;
                     }
                     else
                     {
-                        _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
+                        _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_error);
                     }
                 }
                 else if(len == 0)
                 {
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_closed);
+                    _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_closed);
                     continue;
                 }
-                else if(len == buffer_size)
+                else if(len >= to_write)
                 {
-                    target._finished_buffer += len;
-                    message msg_ok = {{target._finished_buffer}, port_msg};
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_ok);
+                    _tasklet_service._channel_manager.dispatch(target._tasklet._channel, msg_ok);
+                    del_write(target);
                 }
-                else if(len < buffer_size)
+                else
                 {
-                    target._finished_buffer += len;
-                    target._buffer += len;
-                    target._buffer_size -= len;
                     continue;
                 }
-                 else // len > buffer_size
-                {
-                    _tasklet_service._channel_manager.dispatch(target._channel, msg_error);
-                }
-           }
+            }
             else
             {
                 throw exception(__FILE__, __LINE__);

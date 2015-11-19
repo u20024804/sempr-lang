@@ -51,7 +51,46 @@ namespace cerl
     {
         netfile(tasklet &tasklet_, int fd, int recv_buff_size, int send_buff_size) :
                 _fd(fd), _recv_buff(recv_buff_size), _to_read(0), _to_write(0),
-                _send_buff(send_buff_size), _tasklet(tasklet_), _net_event(0) {}
+                _send_buff(send_buff_size), _tasklet(tasklet_), _net_event(0), _net_state(serving) {}
+
+        ~netfile()
+        {
+            close();
+        }
+
+        int on_recv()
+        {
+            int ret = _recv_buff.on_recv(_fd);
+            if(ret > 0)
+            {
+                _to_read = ret >= _to_read ? 0 : _to_read - ret;
+            }
+            else
+            {
+                _to_read = 0;
+            }
+            return ret;
+        }
+
+        int on_send()
+        {
+            int ret = _send_buff.on_send(_fd);
+            if(ret > 0)
+            {
+                _to_write = ret >= _to_write ? 0 : _to_write - ret;
+            }
+            else
+            {
+                _to_write = 0;
+            }
+            return ret;
+        }
+
+        void close()
+        {
+            _tasklet.close(*this);
+        }
+
         int _fd;
         ring_buffer _recv_buff;
         ring_buffer _send_buff;
@@ -60,6 +99,7 @@ namespace cerl
         tasklet &_tasklet;
 
         int _net_event;
+        net_state _net_state;
     };
 
     class tasklet
@@ -73,10 +113,6 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(*_ptasklet_service, *this),
-                _buffer(NULL),
-                _buffer_size(0),
-                _flags(0),
-                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -88,9 +124,7 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0),
-                _fd(-1),
-                _net_state(serving)
+                _wake(0)
         {
             init(auto_start);
         }
@@ -101,10 +135,6 @@ namespace cerl
                 _func_ptr1(handle_),
                 _arg(arg_),
                 _channel(*_ptasklet_service, *this),
-                _buffer(NULL),
-                _buffer_size(0),
-                 _flags(0),
-                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -116,9 +146,7 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0),
-                _fd(-1),
-                _net_state(serving)
+                _wake(0)
         {
             init(auto_start);
         }
@@ -129,10 +157,6 @@ namespace cerl
                 _func_ptr1((void(*)(void *))handle_),
                 _arg(this),
                 _channel(*_ptasklet_service, *this),
-                _buffer(NULL),
-                _buffer_size(0),
-                 _flags(0),
-                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -144,9 +168,7 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0),
-                _fd(-1),
-                _net_state(serving)
+                _wake(0)
         {
             init(auto_start);
         }
@@ -157,10 +179,6 @@ namespace cerl
                 _func_ptr1((void(*)(void *))handle_),
                 _arg(this),
                 _channel(*_ptasklet_service, *this),
-                _buffer(NULL),
-                _buffer_size(0),
-                _flags(0),
-                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -172,9 +190,7 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0),
-                _fd(-1),
-                _net_state(serving)
+                _wake(0)
         {
             init(auto_start);
         }
@@ -185,10 +201,6 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(*_ptasklet_service, *this),
-                _buffer(NULL),
-                _buffer_size(0),
-                _flags(0),
-                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -200,9 +212,7 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0),
-                _fd(-1),
-                _net_state(serving)
+                _wake(0)
         {
             init(auto_start);
         }
@@ -213,10 +223,6 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(*_ptasklet_service, *this),
-                _buffer(NULL),
-                _buffer_size(0),
-                _flags(0),
-                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(stack_size_ > MIN_STACK_SIZE ? stack_size_ : MIN_STACK_SIZE),
@@ -228,9 +234,7 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0),
-                _fd(-1),
-                _net_state(serving)
+                _wake(0)
         {
         }
 
@@ -240,10 +244,6 @@ namespace cerl
                 _func_ptr1(NULL),
                 _arg(NULL),
                 _channel(),
-                _buffer(NULL),
-                _buffer_size(0),
-                _flags(0),
-                _finished_buffer(0),
                 _id(_channel.id()),
                 _ucontext(),
                 _stack_size(default_stack_size > MIN_STACK_SIZE ? default_stack_size: MIN_STACK_SIZE),
@@ -255,9 +255,7 @@ namespace cerl
                 _next_waitting(NULL),
                 _next_runnable(NULL),
                 _state(no_start),
-                _wake(0),
-                _fd(-1),
-                _net_state(serving)
+                _wake(0)
         {
         }
 
@@ -269,7 +267,6 @@ namespace cerl
                 _stack = NULL;
             }
         }
-
         void send(tasklet& target, const message& msg);
         void send(tasklet* ptarget, const message& msg)
         {
@@ -290,7 +287,7 @@ namespace cerl
         int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
         int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
         int connect(const struct sockaddr *addr, double timout=infinity);
-        void close();
+        void close(netfile &netfile_);
         void close(int fd);
         message recv(double timeout=infinity);
         void sleep(double timeout);
@@ -331,7 +328,7 @@ namespace cerl
 
         void before_start_tasklet();
         void after_start_tasklet();
-        void start_tasklet();
+        void start_tasklet(void *);
         void return2threadlet();
         virtual void on_exception(exception& e);
         virtual void on_exception(::std::exception& e);
@@ -357,7 +354,7 @@ namespace cerl
             _ucontext.uc_link = NULL;
             //makecontext的可变参数部分，在传递指针的时候，可能在64位系统下有问题
             //因为可变参数的类型一般都需要与int的size一样大
-            makecontext(&_ucontext, (void(*)(void))&tasklet::start_tasklet, 1, this);
+            makecontext(&_ucontext, (void(*)(void))&tasklet::start_tasklet, 2, this, this);
             if (auto_start)
             {
                 start();
@@ -391,8 +388,6 @@ namespace cerl
         tasklet *_next_runnable;
         tasklet_state _state;
         unsigned long long _wake;
-        int _fd;
-        net_state _net_state;
     };
     typedef quick_lock<tasklet> tasklet_lock;
 

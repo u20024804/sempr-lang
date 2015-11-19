@@ -237,9 +237,9 @@ namespace cerl
         return connectfd;
      }
 
-    void tasklet::close()
+    void tasklet::close(netfile &netfile_)
     {
-        _ptasklet_service->close(*this);
+        _ptasklet_service->close(netfile_);
     }
 
     void tasklet::close(int fd)
@@ -269,7 +269,7 @@ namespace cerl
         }
     }
 
-    void tasklet::start_tasklet()
+    void tasklet::start_tasklet(void *)
     {
         before_start_tasklet();
         try

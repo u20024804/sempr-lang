@@ -31,8 +31,10 @@ namespace cerl
 
         bool add_read(netfile &netfile_);
         bool add_write(netfile &netfile_);
-        void del(tasklet &tasklet_);
-        void on_finish(tasklet &tasklet_);
+        bool del_read(netfile &netfile_);
+        bool del_write(netfile &netfile_);
+        void del(netfile &netfile_);
+        void on_finish(netfile &netfile_);
 
         bool stopped()
         {

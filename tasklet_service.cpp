@@ -365,9 +365,12 @@ namespace cerl
 
     void tasklet_service::close(netfile &netfile_)
     {
-        _pport_service->on_finish(tasklet_);
-        ::close(tasklet_._fd);
-        tasklet_._fd = -1;
+        if(netfile_._fd >= 0)
+        {
+            _pport_service->on_finish(netfile_);
+            ::close(netfile_._fd);
+            netfile_._fd = -1;
+        }
     }
 
 } //namespace cerl
