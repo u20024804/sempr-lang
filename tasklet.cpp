@@ -59,13 +59,9 @@ namespace cerl
     static const message msg_fail = {{-1}, port_msg};
     static const message msg_timeout = {{-1}, no_msg};
 
-    message tasklet::send(int fd, const void *buf, size_t len, int flags)
+    message tasklet::send(netfile &netfile_, const void * const buf, size_t len, double timeout)
     {
         tasklet_lock lock(this);
-        on_port_finish on_port_finish_(this, fd, on_port_finish::op_read);
-        _buffer = (char *)buf;
-        _buffer_size = len;
-        _flags = flags;
         bool success = _ptasklet_service->add_write(*this, fd);
         if (!success)
         {
@@ -86,7 +82,7 @@ namespace cerl
         return msg;
     }
 
-    message tasklet::recv(netfile &netfile_, void *buf, size_t len, double timeout)
+    message tasklet::recv(netfile &netfile_, const void * const buf, size_t len, double timeout)
     {
         read_finish read_finish_(netfile_);
 

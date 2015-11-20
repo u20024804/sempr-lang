@@ -253,6 +253,20 @@ public:
         return to_write;
     }
 
+    void back_write(int go_back, void *target, int len)
+    {
+        int pos = _tail - go_back;
+        if(pos < 0)
+        {
+            pos += _size;
+        }
+
+        int current_pos = _tail;
+        _tail = pos;
+        write(target, len);
+        _tail = current_pos;
+    }
+
     int on_send(int fd)
     {
         int to_write = readable();

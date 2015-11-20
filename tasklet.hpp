@@ -282,8 +282,8 @@ namespace cerl
         {
             send(&target, msg);
         }
-        message send(int fd, const void *buf, size_t len, int flags=0);
-        message recv(netfile &netfile_, void *buf, size_t len, double timeout=infinity);
+        message send(netfile &netfile_, const void * const buf, size_t len, double timeout=infinity);
+        message recv(netfile &netfile_, const void * const buf, size_t len, double timeout=infinity);
         int port(const sockaddr_in *addr, int backlog=128, int socket_type=SOCK_STREAM, int protocol=0);
         int accept(sockaddr * addr=NULL, socklen_t * addrlen=NULL);
         int connect(const struct sockaddr *addr, double timout=infinity);
